@@ -1,0 +1,104 @@
+{
+  "title": "Yuvomi MCP",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Yuvomi MCP verbinden",
+        "description": "Zustandslosen Yuvomi-MCP-Endpunkt und separaten API-Token eingeben. Die Verbindung und Werkzeug-Schemas werden geprüft.",
+        "data": {
+          "url": "MCP-URL",
+          "api_token": "API-Token"
+        }
+      },
+      "reconfigure": {
+        "title": "Verbindung ändern",
+        "description": "Token leer lassen, um den vorhandenen Token zu behalten. Bestehende Werkzeug-Freigaben bleiben erhalten.",
+        "data": {
+          "url": "MCP-URL",
+          "api_token": "Neuer API-Token (optional)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Yuvomi erneut authentifizieren",
+        "description": "Einen gültigen Token eingeben. Token-Scopes in Yuvomi erfordern gegebenenfalls einen neuen Token.",
+        "data": {
+          "url": "MCP-URL",
+          "api_token": "Neuer API-Token"
+        }
+      }
+    },
+    "error": {
+      "invalid_input": "HTTP(S)-URL mit Pfad /mcp und gültigen API-Token angeben. Zugangsdaten in der URL sind nicht erlaubt.",
+      "invalid_auth": "Yuvomi hat den Token abgelehnt. Token und Berechtigungen prüfen.",
+      "cannot_connect": "Yuvomi ist nicht erreichbar oder hat einen HTTP-Fehler gemeldet. URL, Netzwerk und Dienst prüfen.",
+      "protocol_error": "MCP-Version, Antwortformat oder Werkzeug-Schema ist nicht kompatibel."
+    },
+    "abort": {
+      "already_configured": "Dieser Endpunkt ist bereits eingerichtet.",
+      "single_instance_allowed": "Es ist bereits eine Yuvomi-MCP-Integration eingerichtet.",
+      "reauth_successful": "Authentifizierung aktualisiert.",
+      "reconfigure_successful": "Verbindung aktualisiert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Yuvomi MCP",
+        "menu_options": {
+          "tools": "Werkzeuge freigeben",
+          "approve": "Aktion bestätigen",
+          "executions": "Unklare Ausführungen lesend prüfen"
+        }
+      },
+      "tools": {
+        "title": "Werkzeuge freigeben",
+        "description": "Nur ausgewählte Werkzeuge stehen Assist zur Verfügung. Neue Werkzeuge bleiben gesperrt. add_shopping_item verwendet den Produktkatalog und feste REST-Pfade für Bestandsprüfung, Reaktivierung und Neuanlage. shopping:write ist erforderlich und schließt serverseitig Lesen ein. add_shopping_items ist optional und muss ausdrücklich aktiviert werden. Generische und unbekannte Werkzeuge benötigen weiterhin die konkrete Aktionsbestätigung. Speichern lädt bei geänderter Auswahl neu.",
+        "data": {
+          "enabled_tools": "Freigegebene Yuvomi-Werkzeuge"
+        }
+      },
+      "approve": {
+        "title": "Ausstehende Aktion auswählen",
+        "description": "Hier wird nur die Auswahl getroffen. Im nächsten Schritt die konkreten Parameter prüfen.",
+        "data": {
+          "request_id": "Ausstehende Aktion"
+        }
+      },
+      "confirm": {
+        "title": "Konkrete Aktion einmalig erlauben",
+        "description": "Werkzeug: {tool}\n\nParameter:\n```json\n{arguments}\n```\n\nNur bestätigen, wenn genau diese Aktion gewünscht ist. Danach dieselbe Aktion innerhalb von zwei Minuten erneut über Assist anfordern. Die Zustimmung gilt nur einmal für diese Parameter und denselben Aufrufer.",
+        "data": {
+          "confirm": "Ich bestätige die Ausführung dieser konkreten Aktion"
+        }
+      },
+      "executions": {
+        "title": "Unklare Ausführung prüfen",
+        "description": "Prüft ausschließlich lesend, ob der gewünschte Zustand eindeutig vorhanden ist. Wiederholt niemals eine Schreibaktion. Ohne eindeutigen Treffer bleibt die Liste gesperrt; keine Freigabe auf Verdacht.",
+        "data": {
+          "execution": "Ausführung"
+        }
+      },
+      "execution_result": {
+        "title": "Zustandsprüfung",
+        "description": "{message}",
+        "data": {}
+      },
+      "execution_error": {
+        "title": "Ausführung prüfen",
+        "description": "{message}\n\nZurück zur Übersicht; ursprünglichen Zustand prüfen.",
+        "data": {}
+      }
+    },
+    "error": {
+      "invalid_tools": "Nur aktuell erkannte Werkzeuge auswählen."
+    },
+    "abort": {
+      "refresh_failed": "Werkzeuge konnten nicht aktualisiert werden. Verbindung, Token oder Schema prüfen.",
+      "no_pending": "Es gibt keine ausstehenden Bestätigungen.",
+      "approval_expired": "Die Anfrage ist abgelaufen oder nicht mehr verfügbar. Aktion erneut anfordern.",
+      "approved": "Aktion einmalig freigegeben. Jetzt dieselbe Aktion innerhalb der ursprünglichen Zwei-Minuten-Frist erneut über Assist anfordern.",
+      "approval_cancelled": "Die Aktion wurde nicht freigegeben.",
+      "no_executions": "Keine unklaren Ausführungen vorhanden."
+    }
+  }
+}

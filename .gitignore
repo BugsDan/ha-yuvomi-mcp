@@ -1,0 +1,42 @@
+# Local Python/test/build files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.pytest_work/
+.test-tmp-*/
+.coverage*
+htmlcov/
+*.egg-info/
+build/
+dist/
+reference/
+
+# Editors / local agent data
+.vscode/
+.idea/
+.agents/
+.codex/
+.DS_Store
+Thumbs.db
+
+# Home Assistant, tokens, personal configuration and backups
+.env
+.env.*
+!.env.example
+.storage/
+.secrets/
+secrets.yaml
+configuration.yaml
+known_devices.yaml
+home-assistant*.db*
+*.log
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+credentials*.json
+*backup*.tar*
+*.zip

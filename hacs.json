@@ -1,0 +1,8 @@
+{
+  "name": "Yuvomi MCP",
+  "homeassistant": "2026.10.2",
+  "render_readme": true,
+  "hide_default_branch": true,
+  "content_in_root": false,
+  "zip_release": false
+}

@@ -1,0 +1,45 @@
+name: Prepare draft release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/tests.yml
+
+  draft:
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify tag and publication hygiene
+        run: python tools/check_repository.py --tag "$GITHUB_REF_NAME"
+      - run: python tools/build_release.py
+      - name: Create draft only (never auto-publish)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/yuvomi_mcp-${version}.zip" \
+            "dist/yuvomi_mcp-${version}-source.zip" \
+            "dist/SHA256SUMS-${version}.txt" \
+            --draft --verify-tag --title "Yuvomi MCP ${version}" \
+            --notes-file "docs/RELEASE_${version}.md"

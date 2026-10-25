@@ -1,0 +1,41 @@
+{
+  "version": "2026.10.2",
+  "sources": {
+    "homeassistant/components/llm/__init__.py": {
+      "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/components/llm/__init__.py",
+      "sha256": "cb0fead52f3dcd6e4f29b53184ccc48b4c0b7dd3c9ed6d566f46caee1399228c"
+    },
+    "homeassistant/helpers/llm.py": {
+      "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/helpers/llm.py",
+      "sha256": "7b4453aebb21460138ff75c5222594114f73a24df6d9aeea313af3cc7d1ee1e1"
+    },
+    "homeassistant/components/mcp/coordinator.py": {
+      "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/components/mcp/coordinator.py",
+      "sha256": "dbc8d1e37711b02975484b61789e3eb9813c634a771573a07b35476848c4ace4"
+    },
+    "homeassistant/config_entries.py": {
+      "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/config_entries.py",
+      "sha256": "221e2672e9a8f0ec12fa62edbfdc2ef6d986331855797615c81ecbe99f8840db"
+    },
+    "homeassistant/helpers/integration_platform.py": {
+      "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/helpers/integration_platform.py",
+      "sha256": "d280dff65559bc9937dbb80dffe7adbd567827ceced0e116c4ce15676863ae37"
+    },
+    "pyproject.toml": {
+      "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/pyproject.toml",
+      "sha256": "101695625e5d0eb1f5b0f563ae8d25bdd94b56f49bd2e0f055089eaf12bfd087"
+    },
+    "homeassistant/components/config/config_entries.py": {
+      "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/components/config/config_entries.py",
+      "sha256": "b2b7fd0dab2d7b4cea5569cba642c2b78c2ecb97341e8987861de3ea009ff2bb"
+    }
+  },
+  "verified_contract": {
+    "platform_callback": "def async_get_tools(hass, llm_context, api_id) -> LLMTools | None",
+    "parameters": "probatio.Schema via probatio.from_openapi(inputSchema)",
+    "tool_call": "async_call(hass, tool_input, llm_context) -> ToolResult",
+    "tool_error": "ToolResult(data=JSON object, error=bool)",
+    "discovery": "LazyIntegrationPlatforms discovers llm.py for loaded integrations",
+    "minimum_python": "3.14.2"
+  }
+}
