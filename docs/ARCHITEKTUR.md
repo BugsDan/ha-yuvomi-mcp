@@ -10,6 +10,6 @@
 - `runtime.py`: unveränderte Allowlist, Bestätigung unbekannter Werkzeuge und MCP-Aufgaben/Kalender. Beide Einkaufswerkzeuge setzen einen geladenen Einkaufsprozessor voraus; kein MCP-Fallback ohne Journal.
 - `llm.py`: bestehende HA-LLM-Plattform, klare per-item-Kategorie- und Mengenanweisungen, keine zusätzlichen Modellaufrufe im Backend.
 
-`catalog.py` und `catalog_ui.py` sind entfernt. Es gibt keine Katalogbeobachtung, Produktbestätigung, Synonymauflösung oder Importfunktion mehr. Der Config-Entry bleibt Version 1; seine gespeicherten Daten/Optionen werden nicht migriert oder ergänzt. Die Migration findet ausschließlich beim Laden des Integrationsstores statt.
+Es gibt keine aktiven Produktkatalogmodule. Es gibt keine Katalogbeobachtung, Produktbestätigung, Synonymauflösung oder Importfunktion mehr. Der Config-Entry bleibt Version 1; seine gespeicherten Daten/Optionen werden nicht migriert oder ergänzt. Der bestehende Speicherkompatibilitätsadapter bleibt zum Schutz früherer manueller Installationen erhalten; siehe [Speicherkompatibilität](STORAGE_COMPATIBILITY.md).
 
 REST: GET `/api/v1/shopping`, GET `/api/v1/shopping/{id}/items` (einschließlich abgehakter), GET `/api/v1/shopping/categories`, POST `/api/v1/shopping/{id}/items` mit Idempotency-Key, PATCH `/api/v1/shopping/items/{id}`. Die bestehenden optionalen Vorschläge nutzen weiterhin GET `/api/v1/shopping/suggestions?q=...`; sie sind keine Identitäts- oder dauerhafte Historienquelle für Schreibaktionen.

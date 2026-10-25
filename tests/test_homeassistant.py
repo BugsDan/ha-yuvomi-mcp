@@ -149,6 +149,9 @@ def load_setup_module():
     path = Path(__file__).parents[1] / "custom_components/yuvomi_mcp/__init__.py"
     spec = importlib.util.spec_from_file_location("custom_components.yuvomi_mcp.setup_test", path)
     module = importlib.util.module_from_spec(spec)
+    # __init__.py is detected as a package, but its relative imports belong to
+    # the real integration package, not the isolated setup_test module.
+    module.__package__ = "custom_components.yuvomi_mcp"
     spec.loader.exec_module(module)
     return module
 
@@ -201,7 +204,7 @@ async def test_options_empty_selection_and_new_tools_stay_off(monkeypatch):
 
 async def test_options_confirm_only_approves_exact_pending_request():
     client = AsyncMock()
-    client.redact.side_effect = lambda value: value
+    client.redact = Mock(side_effect=lambda value: value)
     state = Runtime(
         client, {"new_tool": RemoteTool("new_tool", "New", {"type": "object"})}, lambda: {"new_tool"}
     )

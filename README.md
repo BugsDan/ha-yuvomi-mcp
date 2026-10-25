@@ -4,7 +4,7 @@ Yuvomi 2.79.0 ist die einzige Quelle für Einkaufsnamen, Kategorien, Mengen und 
 
 ## Installation über HACS
 
-Repository: [BugsDan/ha-yuvomi-mcp](https://github.com/BugsDan/ha-yuvomi-mcp). Diese Adresse ist für die geplante Veröffentlichung vorgesehen; die lokale Vorbereitung erstellt das Repository noch nicht. Eigenständige Integration, kein offizielles Yuvomi- oder HA-Projekt.
+Repository: [BugsDan/ha-yuvomi-mcp](https://github.com/BugsDan/ha-yuvomi-mcp). 1.4.2 ist die erste öffentliche Version; vor dem ersten veröffentlichten Release ist die HACS-Installation noch nicht verfügbar. Eigenständige Integration, kein offizielles Yuvomi- oder HA-Projekt.
 
 Voraussetzungen: Home Assistant ab 2026.10.2, HACS und ein erreichbarer Yuvomi-Server 2.79.0 mit API-Token. Die getestete HA-API ist auf 2026.10.2 festgelegt; spätere HA-Versionen müssen ihre Kompatibilität in CI/Abnahme bestätigen.
 
@@ -63,17 +63,13 @@ Rechenbare Einheiten: reine Zahlen, l/Liter, ml, g, kg, Stück/Stueck/Stk, Packu
 
 Beispiele: Chips „1 Packung“ + „2 Packungen“ → „3 Packungen“ (increased); Mayonnaise „1 Packung“ + „2 Tuben“ → „2 Tuben“ (replaced). Ergebnisse liefern old_quantity, new_quantity, quantity, action, status, replacement_reason und quantity_defaulted. So kann Assist „Chips waren bereits vorhanden, von 1 auf 3 Packungen erhöht“ oder „Menge von 1 Packung durch 2 Tuben ersetzt“ sagen.
 
-Von 1.4.0/1.4.1 auf 1.4.2 ist keine neue Datenmigration nötig: Schema 2 und das vollständige Journal bleiben erhalten. Neue optionale Transaktionsfelder speichern ausschließlich den Wiederholungsschutz, keine Produktdatenbank.
+## Ausführungsjournal
 
-## Journal und Migration von 1.3.0
+Der HA-Store `.storage/yuvomi_mcp.<Entry-ID>` enthält `schema: 2`, die Yuvomi-URL-Bindung und das persistente Ausführungsjournal. Er dient ausschließlich dem Wiederholungsschutz und der Zustandsprüfung, nicht als Produktdatenbank. Die Integrationsoptionen enthalten Werkzeugfreigabe, Bestätigung unbekannter Werkzeuge und Ausführungsprüfung.
 
-Der aktive HA-Store bleibt `.storage/yuvomi_mcp.<Entry-ID>`. Er enthält nach Migration ausschließlich `schema: 2`, die Yuvomi-URL-Bindung und das Ausführungsjournal. Keine aktive Produktdatenbank, Synonyme, Vorschläge, Bestätigungen oder Kategoriebeobachtungen.
+Bei einer Neuinstallation wird ein leeres Journal verwendet. Bestehende manuelle Installationen behalten Config Entries, Token, Werkzeugfreigaben und alle Journalvorgänge. Sicherheitsrelevante Kompatibilitätsadapter bleiben erhalten; Details für Betreiber früherer Entwicklungsstände stehen in [Speicherkompatibilität](docs/STORAGE_COMPATIBILITY.md).
 
-Vor der Umstellung wird der komplette bisherige Schema-1-Speicher einmalig atomar unter `.storage/yuvomi_mcp.<Entry-ID>.catalog_archive_v1` archiviert und zurückgelesen. Erst bei bestätigter Archivierung wird der aktive Speicher auf Journalbetrieb umgestellt. Alle Journaleinträge einschließlich offener/unklarer Vorgänge und alter Ergebnisdaten bleiben unverändert erhalten. Das Archiv wird anschließend nicht mehr als Produktwissen gelesen. Keine Migration schreibt nach Yuvomi oder ändert Config Entry, Token, Listen oder Werkzeugfreigaben.
-
-Bei Archivierungsfehlern, fremder URL, unbekannten Formaten oder widersprüchlichem Archiv bleiben vorhandene Daten erhalten und Einkaufsaktionen gesperrt. Aufgaben und Kalender bleiben verfügbar. Bei frischer Einrichtung oder einem Upgrade ohne Schema-1-Speicher ist kein Produktarchiv nötig. Der äußere HA-Store-Versionswert bleibt 1, damit der alte Speicher lesbar bleibt; die interne Datenversion ist 2.
-
-Die Integrationsoptionen enthalten nur Werkzeugfreigabe, Bestätigung unbekannter Werkzeuge und Ausführungsprüfung. Produktpflege, Import/Export, Synonyme und Kategorievorschläge sind entfernt. Nach vollständigem Löschen eines Yuvomi-Artikels gibt es bewusst kein Produktgedächtnis; ein neuer Aufruf benötigt wieder eine Kategorie.
+Nach vollständigem Löschen eines Yuvomi-Artikels gibt es bewusst kein Produktgedächtnis; ein neuer Aufruf benötigt wieder eine Kategorie.
 
 ## Wiederholungsschutz und Grenzen
 
@@ -91,4 +87,4 @@ Andere Yuvomi-Clients sind nicht Teil der HA-Sperre. Vor PATCH werden Name, Kate
 
 ## Installation und Abnahme
 
-Siehe [ABNAHME.md](docs/ABNAHME.md) und [RELEASE_1.4.2.md](docs/RELEASE_1.4.2.md). Ein Token mit `shopping:read` und `shopping:write` wird für Einkaufsaktionen benötigt; Rechte werden serverseitig geprüft. Allgemeine REST-Schreibwerkzeuge sind nicht erforderlich. Keine Codeänderung am Assist Router nötig. Hinweise zur Anpassung zentraler Systemprompts: docs/PROMPT_1.4.2.md. Keine HA-Katalog-/Synonymanweisungen oder alten Mengenrückfragen weiterverwenden.
+Siehe [ABNAHME.md](docs/ABNAHME.md) und [RELEASE_1.4.2.md](docs/RELEASE_1.4.2.md). Ein Token mit `shopping:read` und `shopping:write` wird für Einkaufsaktionen benötigt; Rechte werden serverseitig geprüft. Allgemeine REST-Schreibwerkzeuge sind nicht erforderlich. Keine Codeänderung am Assist Router nötig. Hinweise zur Anpassung zentraler Systemprompts: docs/PROMPT_1.4.2.md. Die geplanten Notizfunktionen für 1.4.3 sind in [Anforderungen 1.4.3](docs/PLAN_1.4.3.md) beschrieben und noch nicht implementiert.

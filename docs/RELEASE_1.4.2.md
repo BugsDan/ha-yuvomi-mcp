@@ -1,6 +1,8 @@
-# Yuvomi MCP 1.4.2 — 25.10.2026
+# Yuvomi MCP 1.4.2 – erste öffentliche Version
 
-## Neue Mengenlogik
+Noch nicht veröffentlicht. Diese Baseline enthält die nachfolgend beschriebenen Funktionen; ältere Versionsnummern waren interne Entwicklungsstände. Keine produktive Installation durch die Veröffentlichungsvorbereitung.
+
+## Mengenlogik
 
 ensure und increase verarbeiten Einkaufswünsche gleich: neue Artikel mit angegebener Menge oder „1“ erstellen; offene Artikel auf bestehender ID ergänzen; abgehakte Artikel mit der gewünschten neuen Menge oder „1“ reaktivieren, niemals zur alten Menge addieren. set bleibt eine ausdrücklich gewünschte absolute Korrektur.
 
@@ -33,14 +35,22 @@ Hat sich die Menge/Identität eines weiterhin offenen Ziels zwischenzeitlich ge�
 
 ## Tests
 
-352 lokale Integrationstests sowie 219 Tests des bestehenden Assist Routers bestanden; Routerquellcode unverändert. 1 HA-spezifisches Modul mangels HA-Laufzeit auf Windows/Python 3.12 übersprungen. Lint und Formatprüfung erfolgreich. Der vorhandene lokale TCP-Test prüft zusätzlich echte REST-Addition, Ersetzung, Ergebnismengen und einen Retry mit neuer ID. Weitere Regressionen decken Defaults, Freitext, Einheiten, Reaktivierung, identische/differente Parallelaufrufe, set, neue Retry-IDs, Neustart, Retry-Aliasse, Ablauf des Zeitfensters, manuelle Änderungen, teilweise unklare Sammelaufrufe und die Übernahme alter Journalzustände ab.
+Die CI führt die vollständige Suite unter Python 3.12 und unter Linux/Python 3.14 mit echtem HA 2026.10.2 aus. HACS und hassfest sind eigene Pflichtprüfungen vor dem Release. Ergebnisse des jeweiligen Commits: [GitHub Actions](https://github.com/BugsDan/ha-yuvomi-mcp/actions/workflows/tests.yml). Alle vier Jobs müssen für den zu taggenden Commit erfolgreich sein.
 
-Die HA-spezifischen Plattformtests sind für Linux/Python >=3.14.2 mit HA 2026.10.2 vorbereitet, hier aber nicht ausgeführt. Keine Live-Abnahme mit Alexa, Gemma oder produktivem HA/Yuvomi. Aufgaben-/Kalender- und Berechtigungsregressionen bestehen weiterhin.
+Die beiden Fehler aus dem ersten HA-Lauf (Run 40206049922) sind im Testaufbau korrigiert: korrekter Paketkontext beim isolierten Import und synchroner Mock für redact. Assertions, Testumfang und produktive Funktionalität bleiben erhalten. Regressionen decken Mengen, Freitext, Kategorien, Reaktivierung, Parallelaufrufe, Retries, Neustarts, Journalzustände und Aufgaben-/Kalenderwerkzeuge ab.
+
+Keine Live-Abnahme mit Alexa, Gemma oder produktivem HA/Yuvomi. Die HACS-Installation auf einer echten Betreiberinstallation bleibt gesondert zu prüfen.
 
 ## Installation und Abnahme
 
-Vollständiges HA-Backup einschließlich .storage erstellen. HA stoppen, bisherigen Integrationsordner sichern und custom_components/yuvomi_mcp aus dem ZIP ersetzen. HA starten und eine neue Assist-Unterhaltung für frische Werkzeugbeschreibungen beginnen. Von 1.4.0/1.4.1 bleibt Schema 2 erhalten; neue optionale Journalfelder benötigen keine Migration. Alte offene/unklare Vorgänge, Config Entries, Token und Werkzeugfreigaben bleiben erhalten. Die bisherige Archivmigration für direkte Upgrades von 1.3.0 bleibt verfügbar.
+Voraussetzungen: HA ab 2026.10.2, Yuvomi 2.79.0 und Token mit passenden Rechten. Nach Veröffentlichung HACS als benutzerdefiniertes Repository verwenden; siehe [GitHub/HACS](GITHUB_HACS.md). Für manuelle Installation nur custom_components/yuvomi_mcp aus dem Installations-ZIP übernehmen. Anschließend HA neu starten, Integration einrichten und gewünschte Werkzeuge explizit freigeben.
+
+Bereits manuell eingerichtete Integrationen vor der Übernahme vollständig einschließlich .storage sichern. Config Entries, Tokens, Freigaben und Journale behalten; nichts löschen oder neu anlegen. Technische Altzustände sind separat in [Speicherkompatibilität](STORAGE_COMPATIBILITY.md) beschrieben.
 
 Abnahme auf Testliste: Neuanlage ohne Menge = 1; Chips 1 Packung plus 2 Packungen = 3; Mayonnaise 1 Packung plus 2 Tuben = 2 Tuben mit replaced; abgehakte ID mit neuer Menge reaktivieren; exakt gleichen Vorgang und kurzfristigen Retry erneut aufrufen ohne weitere Addition; explizites set korrigiert den Zielwert. Weitere Details: ABNAHME.md.
 
 Release-Dateien: dist/yuvomi_mcp-1.4.2.zip, dist/yuvomi_mcp-1.4.2-source.zip, dist/SHA256SUMS-1.4.2.txt. Keine produktive Installation oder Änderung am Yuvomi-Server.
+
+## Ausblick
+
+[Notizfunktionen für 1.4.3](PLAN_1.4.3.md) sind nur spezifiziert, nicht implementiert. Die Version bleibt 1.4.2.

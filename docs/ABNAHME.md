@@ -2,16 +2,16 @@
 
 ## Vorher sichern
 
-1. Vollständiges HA-Backup einschließlich Konfiguration, bisherigem `custom_components/yuvomi_mcp` und `.storage` erstellen und extern aufbewahren. Offene Ausführungen in 1.3.0 notieren. Yuvomi wie üblich separat sichern.
+1. Vollständiges HA-Backup einschließlich Konfiguration, bisherigem `custom_components/yuvomi_mcp` und `.storage` erstellen und extern aufbewahren. Offene oder unklare Ausführungen einer bestehenden Installation notieren. Yuvomi wie üblich separat sichern.
 2. ZIP-Prüfsumme mit `SHA256SUMS-1.4.2.txt` vergleichen. Keine Daten aus `.storage` löschen und keine bestehenden Werkzeugfreigaben zurücksetzen.
 
 ## Manuelle Installation
 
 1. HA geordnet stoppen. Bisherigen Integrationsordner außerhalb von `custom_components` sichern, damit alte und neue Module nicht vermischt werden.
 2. Aus `yuvomi_mcp-1.4.2.zip` ausschließlich `custom_components/yuvomi_mcp` an dieselbe Stelle unter der HA-Konfiguration kopieren. Dokumentation kann außerhalb der Konfiguration bleiben.
-3. HA starten. Kein Löschen/Neuanlegen der Integration nötig. Beim Upgrade von 1.4.0/1.4.1 bleibt der Schema-2-Store unverändert; keine neue Migration. Nur beim direkten Upgrade von 1.3.0 wird der bisherige vollständige Store archiviert und das Journal übernommen. Es gibt keine Yuvomi-Schreibaktion während der Migration.
-4. Version 1.4.2, unveränderte URL/Token/Freigaben und Optionenmenü prüfen: Werkzeuge, Aktion bestätigen, Ausführungen prüfen. Produktpflege/Vorschläge/Import/Export dürfen nicht mehr erscheinen.
-5. Existierten 1.3.0-Daten, müssen aktiver Store und `.catalog_archive_v1`-Archiv existieren. Nicht manuell bearbeiten. Bei Fehlern erst Speicher/Backup prüfen; keine erzwungene Neuanlage des Journals.
+3. HA starten. Bei Erstinstallation die Integration über Geräte & Dienste einrichten. Bei bestehender Einrichtung keinen Config Entry löschen oder neu anlegen; vorhandene Journale bleiben erhalten.
+4. Version 1.4.2, unveränderte URL/Token/Freigaben und Optionenmenü prüfen: Werkzeuge, Aktion bestätigen, Ausführungen prüfen. Es gibt keine HA-Produktverwaltung.
+5. Bestehende Speicher nicht manuell bearbeiten. Bei Fehlern erst Speicher/Backup prüfen; keine erzwungene Neuanlage des Journals. Hinweise für frühere manuelle Entwicklungsstände: [Speicherkompatibilität](STORAGE_COMPATIBILITY.md).
 6. `add_shopping_items` und `list_shopping_categories` nur dann explizit aktivieren, wenn gewünscht und noch nicht freigegeben. Eine neue Assist-Unterhaltung starten, damit Werkzeugbeschreibungen frisch geladen werden.
 
 ## Funktionstest auf einer ausdrücklich ausgewählten Testliste
@@ -31,8 +31,8 @@
 
 ## Rückweg und Grenzen
 
-Kein automatischer Rollback auf 1.3.0: dessen Katalogschema versteht den aktiven Schema-2-Store nicht. Für einen Rückweg ein konsistentes vollständiges Backup verwenden und seitdem erfolgte Yuvomi-Aktionen vor neuen Anfragen prüfen. Das Altkatalogarchiv enthält den Stand vor der Migration und ist kein laufendes Journalbackup. Niemals einen alten Journalstand unbesehen über neuere Schreibvorgänge zurückspielen.
+Für einen Rückweg eine konsistente vollständige Sicherung verwenden und seitdem erfolgte Yuvomi-Aktionen vor neuen Anfragen prüfen. Niemals einen alten Journalstand unbesehen über neuere Schreibvorgänge zurückspielen. Technische Grenzen früherer manueller Entwicklungsstände stehen in [Speicherkompatibilität](STORAGE_COMPATIBILITY.md).
 
-Alle Tests des Releases sind lokal mit simuliertem Yuvomi bzw. lokalen Testservern. Das HA-Testmodul benötigt Linux/Python >=3.14.2 mit HA 2026.10.2; die Modell-, Alexa- und produktive HA-Abnahme ist durch diese lokalen Tests nicht ersetzt. Die Installation und Tests in dieser Anleitung führt der Betreiber bewusst selbst aus.
+Die automatisierten Tests verwenden simuliertes Yuvomi bzw. lokale Testserver. Der CI-HA-Job verwendet Linux/Python 3.14 mit echtem HA 2026.10.2; die Modell-, Alexa- und produktive HA-Abnahme ist dadurch nicht ersetzt. Vor Installation die [Actions des Release-Commits](https://github.com/BugsDan/ha-yuvomi-mcp/actions/workflows/tests.yml) prüfen. Die Installation und Tests in dieser Anleitung führt der Betreiber bewusst selbst aus.
 
 Zentrale Systemprompt-Hinweise siehe PROMPT_1.4.2.md. Keine produktive Promptänderung erfolgt automatisch.
