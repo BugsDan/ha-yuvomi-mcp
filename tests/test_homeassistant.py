@@ -147,11 +147,12 @@ async def test_setup_errors_are_translated(monkeypatch, error, code):
 
 def load_setup_module():
     path = Path(__file__).parents[1] / "custom_components/yuvomi_mcp/__init__.py"
-    spec = importlib.util.spec_from_file_location("custom_components.yuvomi_mcp.setup_test", path)
+    # Load setup as a normal module so relative imports use the integration
+    # package, rather than treating this __init__.py as a setup_test package.
+    spec = importlib.util.spec_from_file_location(
+        "custom_components.yuvomi_mcp.setup_test", path, submodule_search_locations=None
+    )
     module = importlib.util.module_from_spec(spec)
-    # __init__.py is detected as a package, but its relative imports belong to
-    # the real integration package, not the isolated setup_test module.
-    module.__package__ = "custom_components.yuvomi_mcp"
     spec.loader.exec_module(module)
     return module
 
