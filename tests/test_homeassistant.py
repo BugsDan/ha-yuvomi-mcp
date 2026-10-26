@@ -14,6 +14,7 @@ import pytest
 pytest.importorskip("homeassistant")
 
 from homeassistant.components import llm as llm_component  # noqa: E402
+from homeassistant.core import HomeAssistant  # noqa: E402
 from homeassistant.helpers import llm  # noqa: E402
 
 from custom_components.yuvomi_mcp import config_flow  # noqa: E402
@@ -157,7 +158,7 @@ def load_setup_module():
     return module
 
 
-async def test_setup_and_unload_use_managed_session(monkeypatch):
+async def test_setup_and_unload_use_managed_session(monkeypatch, tmp_path):
     module = load_setup_module()
     client = AsyncMock()
     client.list_tools.return_value = {"list_tasks": RemoteTool("list_tasks", "Tasks", {"type": "object"})}
@@ -174,7 +175,7 @@ async def test_setup_and_unload_use_managed_session(monkeypatch):
     monkeypatch.setattr(
         module, "planning_store", lambda *args: PlanningStore(MemoryStore(), "http://host/mcp")
     )
-    hass = SimpleNamespace(data={})
+    hass = HomeAssistant(str(tmp_path))
     entry = SimpleNamespace(
         entry_id="entry",
         data={"url": "http://host/mcp", "api_token": "token"},
@@ -187,6 +188,8 @@ async def test_setup_and_unload_use_managed_session(monkeypatch):
     assert entry.runtime_data.enabled() == {"list_tasks"}
     assert await module.async_unload_entry(hass, entry)
     assert entry.runtime_data.enabled() == set()
+
+    await hass.async_stop(force=True)
 
 
 def options_flow(entry, state=None):
@@ -371,10 +374,10 @@ async def test_exposure_option_preserves_allowlist_and_is_reversible():
     assert invalid["errors"] == {"base": "invalid_exposure"}
 
 
-async def test_api_registration_unregistration_uses_real_ha_registry():
+async def test_api_registration_unregistration_uses_real_ha_registry(tmp_path):
     state = runtime()
     state.exposure = lambda: "dedicated"
-    hass = SimpleNamespace(data={})
+    hass = HomeAssistant(str(tmp_path))
     api = platform.YuvomiAPI(hass, SimpleNamespace(entry_id="entry"), state)
     unregister = llm.async_register_api(hass, api)
     assert api in llm.async_get_apis(hass)
@@ -383,6 +386,8 @@ async def test_api_registration_unregistration_uses_real_ha_registry():
     unregister = llm.async_register_api(hass, api)
     unregister()
     await state.close()
+
+    await hass.async_stop(force=True)
 
 
 async def test_real_merged_api_tool_names_and_dispatch_remain_compatible():

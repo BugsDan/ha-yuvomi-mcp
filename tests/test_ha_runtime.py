@@ -18,6 +18,7 @@ from homeassistant.components.conversation.chat_log import ChatLog  # noqa: E402
 from homeassistant.config_entries import ConfigEntries, ConfigEntry  # noqa: E402
 from homeassistant.core import HomeAssistant  # noqa: E402
 from homeassistant.helpers import llm, selector  # noqa: E402
+from homeassistant.loader import async_setup as setup_loader  # noqa: E402
 
 from custom_components.yuvomi_mcp.client import MCPClient  # noqa: E402
 from custom_components.yuvomi_mcp.const import CONF_TOOLS, DOMAIN  # noqa: E402
@@ -30,6 +31,7 @@ from custom_components.yuvomi_mcp.runtime import Runtime  # noqa: E402
 @pytest.fixture
 async def real_ha(tmp_path):
     hass = HomeAssistant(str(tmp_path))
+    setup_loader(hass)
     hass.config_entries = ConfigEntries(hass, {})
     await hass.config_entries.async_initialize()
     assert await llm_component.async_setup(hass, {})
