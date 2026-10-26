@@ -213,10 +213,15 @@ async def test_real_calendar_service_enforces_user_permissions_and_exact_allowli
 
     from homeassistant.auth import auth_manager_from_config
     from homeassistant.core import Context, SupportsResponse
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
 
     from custom_components.yuvomi_mcp.planning_calendar import calendar_reader
     from custom_components.yuvomi_mcp.shopping_api import ShoppingFailure
 
+    dr.async_setup(real_ha)
+    await dr.async_load(real_ha)
+    await er.async_load(real_ha)
     real_ha.auth = await auth_manager_from_config(real_ha, [], [])
     owner = await real_ha.auth.async_create_user("CI owner")
     denied_user = await real_ha.auth.async_create_user("CI no permissions", group_ids=[])
