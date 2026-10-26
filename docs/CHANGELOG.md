@@ -1,5 +1,11 @@
 # Änderungen
 
+## 1.4.4-rc3 – kompakte Rezeptabfragen
+
+- `list_recipes` standardmäßig kompakt, mit limit/offset, exaktem title-Filter und optionalen strukturierten Metadaten. Vollständige Rezeptseiten bleiben ausdrücklich über detail=full verfügbar; get_recipe liest ein vollständiges Rezept nach ID oder exaktem Titel.
+- Schlanke Rezeptprojektion im Menüplanungskontext; vollständige Quellen bleiben intern für Portionsberechnung, Konfliktschutz, Validierung und Speicherung erhalten.
+- Doppelte content-Kopie aus Rezept-Leseergebnissen im HA-LLM-Adapter entfernt; Freigaben, Schreibpfade, Journal und Idempotenz unverändert. Rückgabevertragsänderung und reproduzierbare synthetische Grössenmessung dokumentiert.
+
 ## 1.4.4-rc2 – Prompt-Optimierung
 
 - Doppelte eigene Zeitinjektion aus Assist- und Dedicated-Prompt entfernt; Home Assistants aktueller Zeit-Fallback bleibt erhalten.

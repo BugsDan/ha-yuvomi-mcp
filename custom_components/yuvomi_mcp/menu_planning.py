@@ -14,6 +14,7 @@ from .menu_metadata import metadata, notes_block, scale
 from .planning_config import period
 from .planning_context import PLANNING_PROMPT, attendance, day_range, fail, fingerprint, portions
 from .recipe_engine import Recipes, result
+from .recipe_views import planning_recipe
 from .shopping_api import ShoppingFailure
 
 
@@ -130,7 +131,7 @@ class MenuPlanning:
             "prompt": PLANNING_PROMPT,
             "rules": config,
             "attendance": facts,
-            "recipes": [Recipes.present(r) for r in candidates],
+            "recipes": [planning_recipe(r) for r in candidates],
             "existing": [r for r in rows if str(first) <= r["date"] <= str(last)],
             "previous_recipe_ids": self.previous(rows, prior_start, period_start),
             "expires_in_seconds": 300,

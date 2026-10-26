@@ -8,6 +8,7 @@ from hashlib import sha256
 
 from .const import RECIPE_READS
 from .journal import MAX_JOURNAL, JournalError, now
+from .recipe_views import summary
 from .recipes import recipe_body, recipe_snapshot, split_notes
 from .shopping_api import ShoppingFailure
 
@@ -55,14 +56,54 @@ class Recipes:
         try:
             self.allowed(authorized, writing=writing)
             if not writing:
+                if tool == "get_recipe" and sum(k in args for k in ("recipe_id", "title")) != 1:
+                    raise ShoppingFailure(
+                        "invalid_arguments", "Genau recipe_id oder den exakten title angeben."
+                    )
                 rows = await self.api.recipes()
                 self.allowed(authorized)
                 if tool == "get_recipe":
-                    row = next((r for r in rows if r["id"] == args["recipe_id"]), None)
-                    if row is None:
-                        raise ShoppingFailure("recipe_not_found", "Rezept-ID nicht gefunden.")
-                    return result(self.present(row))
-                return result([self.present(r) for r in rows])
+                    matches = [
+                        r
+                        for r in rows
+                        if (
+                            r["id"] == args["recipe_id"]
+                            if "recipe_id" in args
+                            else r["title"] == args["title"]
+                        )
+                    ]
+                    if not matches:
+                        raise ShoppingFailure(
+                            "recipe_not_found", "Rezept-ID oder exakter Titel nicht gefunden."
+                        )
+                    if len(matches) != 1:
+                        raise ShoppingFailure(
+                            "recipe_unclear", "Exakter Titel ist mehrdeutig; Rezept-ID verwenden."
+                        )
+                    return result(self.present(matches[0]))
+                if "title" in args:
+                    rows = [r for r in rows if r["title"] == args["title"]]
+                limit, offset = args.get("limit", 20), args.get("offset", 0)
+                page = rows[offset : offset + limit]
+                detail = args.get("detail", "summary")
+                reply = result(
+                    [
+                        self.present(r)
+                        if detail == "full"
+                        else summary(r, include_metadata=args.get("include_metadata", False))
+                        for r in page
+                    ]
+                )
+                next_offset = offset + len(page)
+                reply.update(
+                    total=len(rows),
+                    limit=limit,
+                    offset=offset,
+                    detail=detail,
+                    has_more=next_offset < len(rows),
+                    next_offset=next_offset if next_offset < len(rows) else None,
+                )
+                return reply
             async with self.lock:
                 self.allowed(authorized, writing=True)
                 prior = self.journal.data["journal"].get(key)

@@ -28,12 +28,17 @@ Neue lokale Werkzeuge sind in den Integrationsoptionen ausdrücklich freizugeben
 
 | Werkzeug | Wirkung | Tokenrechte |
 | --- | --- | --- |
-| list_recipes | Gesamten Rezeptbestand inklusive Zutaten und Notizen lesen | meals:read |
-| get_recipe | Eine exakte ID aus diesem Bestand lesen | meals:read |
+| list_recipes | Ab RC3 kompakte Übersicht, limit/offset/title; vollständige Seiten ausdrücklich mit detail=full | meals:read |
+| get_recipe | Ein vollständiges Rezept nach ID oder exaktem Titel lesen | meals:read |
 | create_recipe | Ein natives Rezept anlegen | meals:write; shopping:read bei nichtleeren Zutaten |
 | update_recipe | Ein natives Rezept mit erhaltenden Vorgaben bearbeiten | meals:write; shopping:read bei geänderten, nichtleeren Zutaten |
 
 Yuvomi schließt bei einem write-Scope das Lesen desselben Moduls ein. Es werden keine Scopes automatisch ergänzt und keine generischen REST-Schreibwerkzeuge benötigt. Bestehende Freigaben bleiben erhalten; neue Werkzeuge sind standardmäßig aus. Zur besseren Modellkategorisierung zusätzlich list_shopping_categories freigeben.
+
+Ab 1.4.4-rc3 ist der Standardausgabevertrag von `list_recipes` bewusst kompakt und paginiert:
+`data` bleibt ein Array, enthält standardmäßig aber nur Zusammenfassungen. Bestehende Workflows,
+die Zutaten/Notizen brauchen, verwenden `get_recipe` oder `list_recipes` mit `detail="full"`
+und folgen `has_more`/`next_offset`. Einzelheiten und Beispiele: [RECIPE_CONTEXT.md](RECIPE_CONTEXT.md).
 
 ```json
 {

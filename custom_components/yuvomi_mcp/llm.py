@@ -6,7 +6,7 @@ from homeassistant.components.llm import LLMTools
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import llm
 
-from .const import DOMAIN, KNOWN_TOOLS, MENU_TOOLS, READ_TOOLS
+from .const import DOMAIN, KNOWN_TOOLS, MENU_TOOLS, READ_TOOLS, RECIPE_READS
 from .prompts import prompt_for_tools
 from .runtime import Runtime
 
@@ -48,7 +48,7 @@ class YuvomiTool(llm.Tool):
             owner=owner,
             actor=context,
         )
-        if self.remote_name in MENU_TOOLS:
+        if self.remote_name in MENU_TOOLS | RECIPE_READS:
             result = {k: v for k, v in result.items() if k != "content"}
         return llm.ToolResult(data=result, error=bool(result.get("isError")))
 

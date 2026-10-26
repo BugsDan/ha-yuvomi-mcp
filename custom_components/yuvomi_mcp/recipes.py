@@ -91,17 +91,55 @@ def recipe_tools():
         },
     }
     descriptions = {
-        "list_recipes": "Read Yuvomi recipes (family menus), ingredients, notes and menu metadata. No planning or shopping writes. Requires meals:read.",
-        "get_recipe": "Read one exact recipe ID from the complete Yuvomi recipe list (no single-recipe GET exists in 2.79.0).",
+        "list_recipes": "Read compact recipe/menu summaries, never instructions, free-text notes, links or ingredients by default. Pagination: limit default 20 (max 100), offset default 0; follow has_more/next_offset until done. Optional title is exact, not fuzzy. include_metadata adds structured health reasoning/provenance only. detail=full explicitly retrieves full recipe pages for legacy workflows; prefer get_recipe for a named recipe. Requires meals:read, no writes.",
+        "get_recipe": "Read one full recipe including ingredients, instructions/notes and structured menu metadata. Supply exactly one: recipe_id or exact title including variant. For a named recipe, call directly with title instead of listing all recipes. Ambiguous titles require an ID; no fuzzy matching. Internally reads the complete Yuvomi 2.79.0 list; returns only the selected recipe. Requires meals:read, no writes.",
         "create_recipe": "Create a Yuvomi recipe/menu as Mittagessen (lunch). Base servings default 4, stored with structured metadata in notes. Provide known reheatability, total cooking-to-serving time and justified health suggestion; ask when unknown. Preserve exact titles/variants. Resten is an ordinary recipe with optional empty ingredients. No images/links, menu planning, scaling or shopping transfer. Requires meals:read/write and shopping:read for ingredient categories. Never claim unconfirmed writes as success.",
         "update_recipe": "Edit one native Yuvomi recipe ID. Read first. Omitted fields, existing free-text notes, meal types, links and images are preserved. Notes append by default; replace/clear only on explicit request. Metadata merges by field; an AI health rating remains a suggestion. Ingredient replacement is explicit and complete; quantities always refer to stored base servings. No automatic scaling or planning. Provider-mirrored recipes cannot be edited. Requires meals:read/write; shopping:read for changed ingredients. On concurrent_change or execution_unconfirmed do not blindly retry.",
     }
     schemas = {
-        "list_recipes": {"type": "object", "properties": {}, "additionalProperties": False},
+        "list_recipes": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Page size; default 20.",
+                },
+                "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Zero-based offset; default 0. Follow next_offset.",
+                },
+                "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Exact recipe title including variant; no fuzzy or partial match.",
+                },
+                "detail": {
+                    "type": "string",
+                    "enum": ["summary", "full"],
+                    "description": "Default summary. full explicitly returns complete recipe pages.",
+                },
+                "include_metadata": {
+                    "type": "boolean",
+                    "description": "Add structured health reasoning/provenance; no free-text notes.",
+                },
+            },
+            "additionalProperties": False,
+        },
         "get_recipe": {
             "type": "object",
-            "properties": {"recipe_id": {"type": "integer", "minimum": 1}},
-            "required": ["recipe_id"],
+            "properties": {
+                "recipe_id": {"type": "integer", "minimum": 1},
+                "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Exact title including variant. Use exactly one of recipe_id or title.",
+                },
+            },
             "additionalProperties": False,
         },
         "create_recipe": {
@@ -287,6 +325,12 @@ class RecipeAPI(ShoppingAPI):
 
     async def recipes(self):
         data = await self._request("GET", "/api/v1/recipes")
+        # 2.79.0 has exactly {data: [...]} and no pagination. Unknown envelopes
+        # may announce truncation/pagination; never pretend their rows are complete.
+        if set(data) != {"data"}:
+            raise ShoppingFailure(
+                "invalid_response", "Rezeptlistenvertrag geändert; Vollständigkeit nicht belegt."
+            )
         rows = data.get("data")
         if not isinstance(rows, list) or len(rows) > 10000:
             raise ShoppingFailure("invalid_response", "Unvollständige Rezeptliste.")

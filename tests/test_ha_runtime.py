@@ -210,6 +210,58 @@ async def test_real_chatlog_preserves_time_fallback_and_prompt_order(real_ha, mc
         dt_util.set_default_time_zone(previous_zone)
 
 
+async def test_real_recipe_api_exposes_compact_pages_and_single_full_title_read(real_ha):
+    from test_recipe_views import sample_recipes
+
+    from custom_components.yuvomi_mcp.const import RECIPE_READS
+
+    rows = sample_recipes()
+    rows[0]["title"] = "Fleischkäse mit Ofengemüse"
+    requests = []
+
+    async def recipes(request):
+        requests.append(request.method)
+        return web.json_response({"data": rows})
+
+    app = web.Application()
+    app.router.add_get("/api/v1/recipes", recipes)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await web.TCPSite(runner, "127.0.0.1", 0).start()
+    try:
+        async with aiohttp.ClientSession() as session:
+            client = MCPClient(session, f"http://127.0.0.1:{runner.addresses[0][1]}/mcp", "local-test-token")
+            selected = set(RECIPE_READS)
+            state = Runtime(client, {}, lambda: selected)
+            state.exposure = lambda: "dedicated"
+            try:
+                api = await YuvomiAPI(real_ha, entry(client._url), state).async_get_api_instance(context())
+                tools = {tool.remote_name: tool for tool in api.tools}
+                page = await tools["list_recipes"].async_call(
+                    real_ha, llm.ToolInput(tool_name=tools["list_recipes"].name, tool_args={}), context()
+                )
+                assert not page.error and "content" not in page.data
+                assert len(page.data["data"]) == 20 and page.data["next_offset"] == 20
+                assert all("notes" not in row and "ingredients" not in row for row in page.data["data"])
+                detail = await tools["get_recipe"].async_call(
+                    real_ha,
+                    llm.ToolInput(tool_name=tools["get_recipe"].name, tool_args={"title": rows[0]["title"]}),
+                    context(),
+                )
+                assert not detail.error and "content" not in detail.data
+                assert detail.data["data"]["notes"] == rows[0]["notes"]
+                assert detail.data["data"]["ingredients"] == rows[0]["ingredients"]
+                selected.clear()
+                denied = await tools["list_recipes"].async_call(
+                    real_ha, llm.ToolInput(tool_name=tools["list_recipes"].name, tool_args={}), context()
+                )
+                assert denied.error and requests == ["GET", "GET"]
+            finally:
+                await state.close()
+    finally:
+        await runner.cleanup()
+
+
 async def test_real_atomic_ha_store_restores_config_and_unresolved_journal(real_ha, mcp_runtime):
     _, _, _, _, url = mcp_runtime
     old_entry = entry(url)
