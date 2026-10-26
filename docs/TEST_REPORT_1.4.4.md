@@ -1,5 +1,8 @@
 # Implementierung und lokale Prüfungen 1.4.4
 
+> Nachtrag GitHub-CI-Abnahme vom 26.10.2026: echte HA-2026.10.2-Laufzeitprüfung **526 bestanden, 0 fehlgeschlagen, 0 übersprungen**; alle fünf CI-Jobs erfolgreich. [CI-Nachweise, Korrekturen und Grenzen](CI_ACCEPTANCE_1.4.4.md). Die folgenden lokalen Angaben dokumentieren den vorausgehenden Entwicklungsstand; die dort offene HA-/HACS-/hassfest-Abnahme wurde inzwischen in GitHub durchgeführt.
+
+
 Stand: 26.10.2026, lokale Prüfversion. Details zur Einrichtung und A/B/C-Messung: [SETUP_1.4.4.md](SETUP_1.4.4.md).
 
 ## Implementierter Umfang
