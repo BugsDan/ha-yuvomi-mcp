@@ -205,3 +205,42 @@ async def test_real_atomic_ha_store_restores_config_and_unresolved_journal(real_
     assert restored_journal.data["journal"]["pending"]["state"] == "unknown"
     assert list(Path(real_ha.config.config_dir).joinpath(".storage").glob("yuvomi_mcp*"))
     assert dict(old_entry.options) == {CONF_TOOLS: ["list_tasks"]}
+
+
+async def test_real_calendar_service_enforces_user_permissions_and_exact_allowlist(real_ha):
+    from copy import deepcopy
+    from datetime import date
+
+    from homeassistant.auth import auth_manager_from_config
+    from homeassistant.core import Context, SupportsResponse
+
+    from custom_components.yuvomi_mcp.planning_calendar import calendar_reader
+    from custom_components.yuvomi_mcp.shopping_api import ShoppingFailure
+
+    real_ha.auth = await auth_manager_from_config(real_ha, [], [])
+    owner = await real_ha.auth.async_create_user("CI owner")
+    denied_user = await real_ha.auth.async_create_user("CI no permissions", group_ids=[])
+    real_ha.states.async_set("calendar.selected", "off")
+    real_ha.states.async_set("calendar.not_selected", "off")
+    calls = []
+
+    async def get_events(call):
+        calls.append(call)
+        assert call.data["entity_id"] == ["calendar.selected"]
+        return {"calendar.selected": {"events": []}}
+
+    real_ha.services.async_register(
+        "calendar", "get_events", get_events, supports_response=SupportsResponse.ONLY
+    )
+    settings = {**deepcopy(DEFAULTS), "calendars": {"selected": {"entity": "calendar.selected"}}}
+    read = calendar_reader(real_ha)
+    with pytest.raises(ShoppingFailure) as err:
+        await read(settings, date(2026, 10, 26), date(2026, 10, 26), Context(user_id=denied_user.id))
+    assert err.value.code == "calendar_not_allowed" and not calls
+    with pytest.raises(ShoppingFailure):
+        await read(settings, date(2026, 10, 26), date(2026, 10, 26), None)
+    assert not calls
+    result = await read(settings, date(2026, 10, 26), date(2026, 10, 26), Context(user_id=owner.id))
+    assert result == {"calendar.selected": []} and len(calls) == 1
+    assert calls[0].context.user_id == owner.id
+    assert "calendar.not_selected" not in calls[0].data["entity_id"]
