@@ -29,7 +29,15 @@ jobs:
         with:
           python-version: '3.12'
       - name: Verify tag and publication hygiene
-        run: python tools/check_repository.py --tag "$GITHUB_REF_NAME"
+        shell: bash
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc[1-9][0-9]*)?$ ]]; then
+            echo "Unsupported release tag"
+            exit 1
+          fi
+          version="${GITHUB_REF_NAME#v}"
+          version="${version%%-rc*}"
+          python tools/check_repository.py --tag "v${version}"
       - run: python tools/build_release.py
       - name: Create draft only (never auto-publish)
         env:
@@ -37,9 +45,15 @@ jobs:
         shell: bash
         run: |
           version="${GITHUB_REF_NAME#v}"
+          package_version="${version%%-rc*}"
+          flags=()
+          if [[ "$version" == *-rc* ]]; then
+            flags+=(--prerelease)
+          fi
           gh release create "$GITHUB_REF_NAME" \
-            "dist/yuvomi_mcp-${version}.zip" \
-            "dist/yuvomi_mcp-${version}-source.zip" \
-            "dist/SHA256SUMS-${version}.txt" \
+            "dist/yuvomi_mcp-${package_version}.zip" \
+            "dist/yuvomi_mcp-${package_version}-source.zip" \
+            "dist/SHA256SUMS-${package_version}.txt" \
             --draft --verify-tag --title "Yuvomi MCP ${version}" \
+            "${flags[@]}" \
             --notes-file "docs/RELEASE_${version}.md"

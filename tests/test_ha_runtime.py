@@ -176,6 +176,40 @@ async def test_real_api_selector_chatlog_and_combined_apis(real_ha, mcp_runtime)
         unregister()
 
 
+async def test_real_chatlog_preserves_time_fallback_and_prompt_order(real_ha, mcp_runtime):
+    from datetime import datetime, timezone
+
+    from homeassistant.util import dt as dt_util
+
+    runtime, mode, _, calls, url = mcp_runtime
+    assist = async_get_tools(real_ha, context(), "assist")
+    mode["value"] = "dedicated"
+    api = YuvomiAPI(real_ha, entry(url), runtime)
+    previous_zone = dt_util.DEFAULT_TIME_ZONE
+    dt_util.set_default_time_zone(dt_util.get_time_zone("Europe/Zurich"))
+    try:
+        first = await api.async_get_api_instance(context())
+        second = await api.async_get_api_instance(context())
+        assert assist.prompt == first.api_prompt == second.api_prompt
+        assert "Aktuelle Zeit (" not in first.api_prompt
+        assert [tool.name for tool in first.tools] == ["yuvomi_mcp__list_tasks"]
+        assert not calls
+        # Real HA templates/clock: dynamic fallback is retained, never cached by Yuvomi.
+        before = datetime.now(timezone.utc).astimezone(dt_util.DEFAULT_TIME_ZONE).date()
+        log = ChatLog(real_ha, "time-context-regression")
+        await log.async_provide_llm_data(context(), api, "AGENT_STATIC", "FAMILY_EXTRA")
+        after = datetime.now(timezone.utc).astimezone(dt_util.DEFAULT_TIME_ZONE).date()
+        text = log.content[0].content
+        assert text.index("AGENT_STATIC") < text.index(first.api_prompt)
+        assert text.index(first.api_prompt) < text.index("Current time is") < text.index("FAMILY_EXTRA")
+        assert any(f"Today's date is {day}." in text for day in (before, after))
+        assert text.count("Current time is") == 1
+        assert "Aktuelle Zeit (" not in text
+        assert not calls
+    finally:
+        dt_util.set_default_time_zone(previous_zone)
+
+
 async def test_real_atomic_ha_store_restores_config_and_unresolved_journal(real_ha, mcp_runtime):
     _, _, _, _, url = mcp_runtime
     old_entry = entry(url)

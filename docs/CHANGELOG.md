@@ -1,5 +1,12 @@
 # Änderungen
 
+## 1.4.4-rc2 – Prompt-Optimierung
+
+- Doppelte eigene Zeitinjektion aus Assist- und Dedicated-Prompt entfernt; Home Assistants aktueller Zeit-Fallback bleibt erhalten.
+- Stabile kompakte Basis; Einkauf, Rezeptpflege und Menühinweise abhängig von freigegebenen Werkzeugen. Keine neuen Werkzeuge, Schema-, Freigabe- oder Backendänderungen.
+- Herkunft, Cache-Grenzen, struktureller Bytevergleich und LM-Studio-Messanleitung in [TIME_CONTEXT_AND_CACHE.md](TIME_CONTEXT_AND_CACHE.md). Keine gemessene Token- oder Cache-Ersparnis behauptet.
+- Testbranch-CI und Draft-Paketierung unterstützen den RC2-Tag; stabile Manifest-/Paketversion bleibt 1.4.4. Keine neuen Produktfunktionen.
+
 ## 1.4.4 – lokal, unveröffentlicht
 
 - Kürzere Beschreibungen nur bei kompatiblen bekannten Schemas; bestehende Namen, Parameterverträge und Freigaben erhalten. Gemeinsamer Basisprompt für die neun bisherigen Tools bleibt unverändert.
