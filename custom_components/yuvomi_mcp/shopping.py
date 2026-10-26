@@ -91,9 +91,20 @@ def shopping_tools(*, include_single=False) -> dict[str, RemoteTool]:
         },
         "operation": {
             "type": "string",
-            "enum": ["ensure", "set", "increase"],
-            "description": "ensure/increase: add to open items or replace incompatible/unparseable quantities, create new or reactivate checked items. Missing quantity defaults to 1. set: explicit absolute correction only; quantity required.",
+            "enum": ["ensure", "set", "increase", "note"],
+            "description": "ensure/increase: add to open items or replace incompatible/unparseable quantities, create new or reactivate checked items. Missing quantity defaults to 1. set: explicit absolute correction only; quantity required. note: edit ONLY an existing item note, without quantity/category/status changes; never use ensure for a note-only request.",
         },
+    }
+    fields["note"] = {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 5000,
+        "description": "Optional shopping note. Omit to preserve existing notes, including reactivation. With existing text default append; replace only when explicitly requested. Unicode/newlines supported.",
+    }
+    fields["note_mode"] = {
+        "type": "string",
+        "enum": ["append", "replace", "clear"],
+        "description": "Default append. replace explicitly replaces; clear explicitly deletes without a note field. For note-only edits use operation=note (no quantity or category).",
     }
     description = (
         "Use current Yuvomi shopping state including checked items. Preserve existing names and categories. "
@@ -101,6 +112,7 @@ def shopping_tools(*, include_single=False) -> dict[str, RemoteTool]:
         "category_required returns valid names for a corrected call, with no writes. "
         "Never equate partial names, brands or size variants. Open products are updated on their existing ID, never duplicated. "
         "ensure and increase both add quantities for open items; if addition is unsafe, replace with the requested free text and clearly report replacement without a question. Missing quantity means 1 (one current unit when identifiable). Checked items reactivate with the requested quantity. Use set only for an explicit absolute correction. Report old_quantity, new_quantity and action; replayed means already processed, do not claim another addition. "
+        "Optional note preserves existing text by default (append); note_mode=replace/clear only on explicit request. For pure note edits use operation=note, never ensure/increase: no quantity addition or reactivation. "
         "Never report not_executed or execution_unconfirmed as success or blindly retry uncertain writes."
     )
     result = {

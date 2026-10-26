@@ -167,6 +167,13 @@ async def test_setup_and_unload_use_managed_session(monkeypatch):
     from test_journal import make_journal
 
     monkeypatch.setattr(module, "load_journal", AsyncMock(return_value=await make_journal()))
+    from test_journal import MemoryStore
+
+    from custom_components.yuvomi_mcp.planning_config import PlanningStore
+
+    monkeypatch.setattr(
+        module, "planning_store", lambda *args: PlanningStore(MemoryStore(), "http://host/mcp")
+    )
     hass = SimpleNamespace(data={})
     entry = SimpleNamespace(
         entry_id="entry",
@@ -228,7 +235,7 @@ async def test_options_remove_product_functions_and_preserve_other_options(monke
     entry = SimpleNamespace(entry_id="entry", data={}, options={"enabled_tools": [], "future_option": "keep"})
     instance = options_flow(entry)
     menu = await instance.async_step_init()
-    assert menu["menu_options"] == ["tools", "approve", "executions"]
+    assert menu["menu_options"] == ["tools", "exposure", "planning", "approve", "executions"]
     assert not hasattr(instance, "async_step_products")
     monkeypatch.setattr(config_flow, "validate_connection", AsyncMock(return_value={"list_tasks": object()}))
     result = await instance.async_step_tools({"enabled_tools": ["list_tasks"]})
@@ -278,3 +285,120 @@ async def test_execution_options_only_observe_and_never_resend():
     engine.reconcile.assert_awaited_once_with("key")
     assert result["step_id"] == "execution_result"
     assert result["description_placeholders"]["message"] == "Zustand beobachtet"
+
+
+async def test_recipe_tools_require_opt_in_and_have_actual_ha_annotations():
+    from custom_components.yuvomi_mcp.const import RECIPE_READS, RECIPE_WRITES
+
+    selected = set(DEFAULT_TOOLS)
+    state = Runtime(AsyncMock(), {}, lambda: selected)
+    hass = SimpleNamespace(data={DOMAIN: {"entry": state}})
+    try:
+        assert not ((RECIPE_READS | RECIPE_WRITES) & state.enabled())
+        assert platform.async_get_tools(hass, context(), "assist") is None
+        selected.clear()
+        selected.update(RECIPE_READS | RECIPE_WRITES)
+        tools = platform.async_get_tools(hass, context(), "assist").tools
+        assert len(tools) == 4
+        for tool in tools:
+            assert tool.annotations.read_only == (tool.remote_name in RECIPE_READS)
+            assert tool.annotations.idempotent == (tool.remote_name in RECIPE_READS)
+            assert not tool.annotations.open_world
+        selected.clear()
+        tool = tools[0]
+        result = await tool.async_call(hass, llm.ToolInput(tool_name=tool.name, tool_args={}), context())
+        assert result.error
+    finally:
+        await state.close()
+
+
+async def test_recipe_execution_options_route_only_to_read_only_reconciliation():
+    from test_recipes import CREATE, call, engine
+
+    from custom_components.yuvomi_mcp.shopping_api import ShoppingFailure
+
+    service, api, journal = await engine()
+    api.error = ShoppingFailure("execution_unconfirmed", "timeout", uncertain=True)
+    await call(service, CREATE)
+    recipes = SimpleNamespace(reconcile=AsyncMock(return_value={"message": "Rezeptzustand beobachtet"}))
+    shopping = SimpleNamespace(reconcile=AsyncMock())
+    state = SimpleNamespace(journal=journal, recipes=recipes, purchasing=shopping)
+    instance = options_flow(SimpleNamespace(entry_id="entry"), state)
+    reply = await instance.async_step_executions({"execution": "request"})
+    recipes.reconcile.assert_awaited_once_with("request")
+    shopping.reconcile.assert_not_called()
+    assert reply["step_id"] == "execution_result"
+
+
+async def test_dedicated_api_and_assist_never_duplicate_and_old_tool_loses_carrier():
+    from custom_components.yuvomi_mcp.const import MENU_TOOLS
+
+    state = runtime()
+    mode = {"value": "assist"}
+    state.exposure = lambda: mode["value"]
+    hass = SimpleNamespace(data={DOMAIN: {"entry": state}})
+    api = platform.YuvomiAPI(hass, SimpleNamespace(entry_id="entry"), state)
+    assert api.id == "yuvomi_family_entry"
+    assert not (await api.async_get_api_instance(context())).tools
+    old = platform.async_get_tools(hass, context(), "assist").tools[0]
+    mode["value"] = "dedicated"
+    assert platform.async_get_tools(hass, context(), "assist") is None
+    instance = await api.async_get_api_instance(context())
+    assert len(instance.tools) == len(DEFAULT_TOOLS)
+    assert not {t.remote_name for t in instance.tools} & MENU_TOOLS
+    assert all(t.name.startswith("yuvomi_mcp__") for t in instance.tools)
+    rejected = await old.async_call(hass, llm.ToolInput(tool_name=old.name, tool_args={}), context())
+    assert rejected.error
+    held = next(t for t in instance.tools if t.remote_name == "create_task")
+    mode["value"] = "assist"
+    rejected = await held.async_call(hass, llm.ToolInput(tool_name=held.name, tool_args={}), context())
+    assert rejected.error
+    assert len(platform.async_get_tools(hass, context(), "assist").tools) == len(DEFAULT_TOOLS)
+    await state.close()
+
+
+async def test_exposure_option_preserves_allowlist_and_is_reversible():
+    from custom_components.yuvomi_mcp.const import CONF_EXPOSURE
+
+    entry = SimpleNamespace(
+        entry_id="entry", data={}, options={"enabled_tools": ["list_tasks"], "future": 42}
+    )
+    instance = options_flow(entry)
+    for mode in ["dedicated", "assist"]:
+        response = await instance.async_step_exposure({CONF_EXPOSURE: mode})
+        assert response["data"] == {**entry.options, CONF_EXPOSURE: mode}
+    invalid = await instance.async_step_exposure({CONF_EXPOSURE: "all"})
+    assert invalid["errors"] == {"base": "invalid_exposure"}
+
+
+async def test_api_registration_unregistration_uses_real_ha_registry():
+    state = runtime()
+    state.exposure = lambda: "dedicated"
+    hass = SimpleNamespace(data={})
+    api = platform.YuvomiAPI(hass, SimpleNamespace(entry_id="entry"), state)
+    unregister = llm.async_register_api(hass, api)
+    assert api in llm.async_get_apis(hass)
+    unregister()
+    assert api not in llm.async_get_apis(hass)
+    unregister = llm.async_register_api(hass, api)
+    unregister()
+    await state.close()
+
+
+async def test_real_merged_api_tool_names_and_dispatch_remain_compatible():
+    state = runtime()
+    state.exposure = lambda: "dedicated"
+    hass = SimpleNamespace(data={DOMAIN: {"entry": state}})
+    dedicated = platform.YuvomiAPI(hass, SimpleNamespace(entry_id="0123456789abcdef0123456789abcdef"), state)
+    # Merge a second real API without needing an integration-platform manager.
+    second = platform.YuvomiAPI(hass, SimpleNamespace(entry_id="another"), state)
+    second.name = "Other family carrier"
+    merged = await llm.MergedAPI([dedicated, second]).async_get_api_instance(context())
+    assert all(len(t.name) <= 64 for t in merged.tools)
+    target = next(t for t in merged.tools if t.name.endswith("__create_task"))
+    response = await target.async_call(
+        hass, llm.ToolInput(tool_name=target.name, tool_args={}, id="call"), context()
+    )
+    assert not response.error
+    state.client.call_tool.assert_awaited_once_with("create_task", {})
+    await state.close()

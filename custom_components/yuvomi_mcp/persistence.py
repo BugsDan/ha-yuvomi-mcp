@@ -12,3 +12,11 @@ async def load_journal(hass, entry):
     journal = Journal(store, entry.data["url"], archive)
     await journal.load()
     return journal
+
+
+def planning_store(hass, entry):
+    from .planning_config import PlanningStore
+
+    return PlanningStore(
+        Store(hass, 1, f"{DOMAIN}.{entry.entry_id}.planning", atomic_writes=True), entry.data["url"]
+    )

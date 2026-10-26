@@ -1,0 +1,43 @@
+{
+  "version": "2.79.0",
+  "commit": "a6812d433fc25a0f8bf1389542e68111f9169a82",
+  "production_access": false,
+  "sources": {
+    "package.json": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/package.json",
+      "sha256": "92cf77fefa50d3350dae8a37cb2610644dbeec303d29373a519be52615f35c38"
+    },
+    "server/routes/recipes.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/server/routes/recipes.js",
+      "sha256": "18260fc9202ac579c1c5b0adeeaa8231d3578ca8e8dfa87f5be310a6a27d0c21"
+    },
+    "server/routes/shopping.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/server/routes/shopping.js",
+      "sha256": "cde042188bd40aa616890bb872b10c9a9144dcbf286dab13b1334d392cfde4b7"
+    },
+    "server/mcp/tools.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/server/mcp/tools.js",
+      "sha256": "c1a0380c371a3a9f1f2b82fc19cc49189e73ed02aa18a8c1a32ff847e9b36f60"
+    },
+    "server/scopes.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/server/scopes.js",
+      "sha256": "60c7a90d7ca354659953bed00bfa0f86be0021e2681b1e8c0ce50a7c5e2d1f6b"
+    },
+    "server/middleware/idempotency.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/server/middleware/idempotency.js",
+      "sha256": "b3ca89f508bd90133e9c8edf3c31041782a067427a64913201a17f884cf82e47"
+    },
+    "server/middleware/validate.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/server/middleware/validate.js",
+      "sha256": "1393deb1cd62d3b04fd42630148ee6468debeaea81e4f9db24888ad5e63c7d28"
+    },
+    "public/utils/recipe-meal-types.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/public/utils/recipe-meal-types.js",
+      "sha256": "2fec27c61512714b17209bf019cb1dbce6cbba719ca4f018c24e102a376235fe"
+    },
+    "server/index.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/server/index.js",
+      "sha256": "c1b0016d01304f937b08fc14659acc361aaf8089388a291edbd4cc854fc256a0"
+    }
+  }
+}

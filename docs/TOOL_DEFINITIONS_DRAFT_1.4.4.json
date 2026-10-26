@@ -1,0 +1,688 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__add_shopping_item",
+      "description": "Add to one list using current Yuvomi state. Preserve exact products and existing categories. Supply a valid category on the first call for every new item. Open items add compatible quantities, otherwise replace transparently; checked items reactivate with new quantity. Use operation=note for note-only edits. Report actual outcomes; never retry uncertain writes.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Exact product/brand; no synonyms, partial matches or substitution."
+          },
+          "quantity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Free text (e.g. 2 Tuben). Omitted: +1 current unit if known for open items, otherwise 1. Open: add compatible amounts, otherwise replace. Checked: set new quantity. set is absolute."
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "NEW items: exact valid category on first call; read categories unless known. Never invent one; Sonstiges only if none fits. Existing category wins."
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "ensure",
+              "set",
+              "increase",
+              "note"
+            ],
+            "description": "ensure/increase: add or transparently replace unsafe amounts, create/reactivate. set: absolute; quantity required. note: existing note only, no quantity/category or status change."
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000,
+            "description": "Optional Unicode note; omit to preserve, even on reactivation. Default append; replace only explicitly."
+          },
+          "note_mode": {
+            "type": "string",
+            "enum": [
+              "append",
+              "replace",
+              "clear"
+            ],
+            "description": "append default; replace/clear only explicitly. clear without note. Note-only: operation=note, no quantity/category."
+          },
+          "list": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__add_shopping_items",
+      "description": "Process 1–20 items on one list; category belongs in each new items[] object. Add to one list using current Yuvomi state. Preserve exact products and existing categories. Supply a valid category on the first call for every new item. Open items add compatible quantities, otherwise replace transparently; checked items reactivate with new quantity. Use operation=note for note-only edits. Report actual outcomes; never retry uncertain writes.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Exact product/brand; no synonyms, partial matches or substitution."
+                },
+                "quantity": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Free text (e.g. 2 Tuben). Omitted: +1 current unit if known for open items, otherwise 1. Open: add compatible amounts, otherwise replace. Checked: set new quantity. set is absolute."
+                },
+                "category": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "NEW items: exact valid category on first call; read categories unless known. Never invent one; Sonstiges only if none fits. Existing category wins."
+                },
+                "operation": {
+                  "type": "string",
+                  "enum": [
+                    "ensure",
+                    "set",
+                    "increase",
+                    "note"
+                  ],
+                  "description": "ensure/increase: add or transparently replace unsafe amounts, create/reactivate. set: absolute; quantity required. note: existing note only, no quantity/category or status change."
+                },
+                "note": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 5000,
+                  "description": "Optional Unicode note; omit to preserve, even on reactivation. Default append; replace only explicitly."
+                },
+                "note_mode": {
+                  "type": "string",
+                  "enum": [
+                    "append",
+                    "replace",
+                    "clear"
+                  ],
+                  "description": "append default; replace/clear only explicitly. clear without note. Note-only: operation=note, no quantity/category."
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 20
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__call_api_operation",
+      "description": "Call a documented REST operation within token rights. Generic access requires existing explicit HA approval; never use it to bypass dedicated tools.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "operation_key": {
+            "type": "string",
+            "description": "Key from list_api_operations."
+          },
+          "method": {
+            "type": "string",
+            "description": "Method with path if no operation_key."
+          },
+          "path": {
+            "type": "string",
+            "description": "Path with method if no operation_key."
+          },
+          "path_params": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Path parameter values."
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Query parameters."
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "JSON request body."
+          },
+          "content_data": {
+            "type": "string",
+            "description": "Upload base64 or data URL."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__create_event",
+      "description": "Create one Yuvomi calendar event.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Event title (required)."
+          },
+          "start_datetime": {
+            "type": "string",
+            "description": "Required date or local YYYY-MM-DDTHH:MM. Z/offset converts to household timezone; all-day uses the date."
+          },
+          "end_datetime": {
+            "type": "string",
+            "description": "Optional end in start format."
+          },
+          "all_day": {
+            "type": "boolean",
+            "description": "Whether the event lasts all day."
+          },
+          "location": {
+            "type": "string",
+            "description": "Optional location."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description."
+          }
+        },
+        "required": [
+          "title",
+          "start_datetime"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__create_recipe",
+      "description": "Create an exact recipe/menu variant as lunch, base servings 4 by default. Supply ingredients and known menu metadata; ask for unknown facts. Store justified health as an AI suggestion. Resten may have no ingredients. No image/link, scaling or shopping transfer. Requires meals:write and shopping:read for ingredient categories.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Exact recipe title/variant/brand; never substitute."
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "quantity": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "category": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                }
+              },
+              "required": [
+                "name",
+                "quantity",
+                "category"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 200,
+            "description": "Exact ingredients and free-text amounts for basisportionen; valid shopping categories only. [] explicitly empties ingredients; allowed for Resten."
+          },
+          "notes": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000,
+            "description": "Recipe instructions; omit to preserve, default append. Metadata is separate."
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "wiederaufwärmbar": {
+                "type": "boolean"
+              },
+              "zubereitungszeit_min": {
+                "minimum": 0,
+                "maximum": 10080,
+                "type": "number",
+                "description": "Total minutes from cooking start to serving, including baking/waiting."
+              },
+              "gesundheit": {
+                "minimum": 1,
+                "maximum": 5,
+                "type": "number"
+              },
+              "gesundheit_begruendung": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Justify the health score; AI suggestion, never human confirmation."
+              },
+              "mag_nicht": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "maxItems": 30
+              },
+              "basisportionen": {
+                "minimum": 1,
+                "maximum": 100,
+                "type": "number",
+                "description": "Recipe quantity basis; creation default 4. No automatic scaling."
+              }
+            },
+            "required": [
+              "wiederaufwärmbar",
+              "zubereitungszeit_min",
+              "gesundheit",
+              "gesundheit_begruendung"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "title",
+          "ingredients",
+          "metadata"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__create_task",
+      "description": "Create a family task with optional due date, priority and tags.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Short task title (required)."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional longer description."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "household",
+              "school",
+              "shopping",
+              "repair",
+              "health",
+              "finance",
+              "leisure",
+              "misc"
+            ],
+            "description": "Optional category."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "none",
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ],
+            "description": "Optional priority (default none)."
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Optional due date, format YYYY-MM-DD."
+          },
+          "due_time": {
+            "type": "string",
+            "description": "Optional due time, format HH:MM."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Multiple free-form tags, separate from category; mirror CalDAV CATEGORIES."
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__get_api_operation",
+      "description": "Read one OpenAPI operation key. Existing explicit HA approval still required.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "operation_key": {
+            "type": "string",
+            "description": "Key from list_api_operations."
+          }
+        },
+        "required": [
+          "operation_key"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__get_recipe",
+      "description": "Read one exact Yuvomi recipe ID; meals:read.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "recipe_id": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "recipe_id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__list_api_operations",
+      "description": "Discover token-authorized REST operations. Existing explicit HA approval still required.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string",
+            "description": "Optional OpenAPI tag filter."
+          },
+          "search": {
+            "type": "string",
+            "description": "Search key/path/tag/summary."
+          },
+          "include_parameters": {
+            "type": "boolean",
+            "description": "Include parameter details."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__list_recipes",
+      "description": "Read Yuvomi recipes/menus with ingredients, notes and metadata. No planning or shopping writes; meals:read.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__list_shopping_categories",
+      "description": "Read current category names in Yuvomi order for new shopping items; never invent categories.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__list_shopping_items",
+      "description": "List shopping items across lists; unchecked by default.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "include_checked": {
+            "type": "boolean",
+            "description": "Also include already-checked items."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__list_tasks",
+      "description": "List current top-level family tasks; open by default. Optional status and AND-tag filters.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "in_progress",
+              "done",
+              "archived"
+            ],
+            "description": "Filter status; archived selects the separate archive regardless of stored status."
+          },
+          "include_future": {
+            "type": "boolean",
+            "description": "Include future-start tasks; excluded by default."
+          },
+          "tag": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Case-insensitive AND filter over tags."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__list_upcoming_events",
+      "description": "Read upcoming Yuvomi events from today.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "description": "Max number of events (1-100, default 20)."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__suggest_shopping_items",
+      "description": "Search shopping suggestions by prefix. Similar names are different products; never reuse historical quantities.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Shopping item name or prefix."
+          }
+        },
+        "required": [
+          "q"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__update_recipe",
+      "description": "Edit one native recipe ID; omitted fields, notes, images and links stay. Notes append by default; replace/clear only explicitly. Metadata merges; changed health needs justification, changed base servings explicit ingredient quantities. Never edit provider mirrors. Requires meals:write; shopping:read for changed ingredients. Do not retry uncertain writes.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Exact recipe title/variant/brand; never substitute."
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "quantity": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "category": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                }
+              },
+              "required": [
+                "name",
+                "quantity",
+                "category"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 200,
+            "description": "Exact ingredients and free-text amounts for basisportionen; valid shopping categories only. [] explicitly empties ingredients; allowed for Resten."
+          },
+          "notes": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000,
+            "description": "Recipe instructions; omit to preserve, default append. Metadata is separate."
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "wiederaufwärmbar": {
+                "type": "boolean"
+              },
+              "zubereitungszeit_min": {
+                "minimum": 0,
+                "maximum": 10080,
+                "type": "number",
+                "description": "Total minutes from cooking start to serving, including baking/waiting."
+              },
+              "gesundheit": {
+                "minimum": 1,
+                "maximum": 5,
+                "type": "number"
+              },
+              "gesundheit_begruendung": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Justify the health score; AI suggestion, never human confirmation."
+              },
+              "mag_nicht": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "maxItems": 30
+              },
+              "basisportionen": {
+                "minimum": 1,
+                "maximum": 100,
+                "type": "number",
+                "description": "Recipe quantity basis; creation default 4. No automatic scaling."
+              }
+            },
+            "additionalProperties": false
+          },
+          "recipe_id": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "notes_mode": {
+            "type": "string",
+            "enum": [
+              "append",
+              "replace",
+              "clear"
+            ],
+            "description": "Explicit replace/clear free text only; keep metadata. clear without notes."
+          }
+        },
+        "required": [
+          "recipe_id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+]

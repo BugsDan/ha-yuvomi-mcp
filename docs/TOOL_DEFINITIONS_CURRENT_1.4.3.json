@@ -1,0 +1,688 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__add_shopping_item",
+      "description": "Use current Yuvomi shopping state including checked items. Preserve existing names and categories. For every NEW item supply the best fitting category on the FIRST call from list_shopping_categories (unless known from context), never invent names and use Sonstiges only if no specific category fits; category_required returns valid names for a corrected call, with no writes. Never equate partial names, brands or size variants. Open products are updated on their existing ID, never duplicated. ensure and increase both add quantities for open items; if addition is unsafe, replace with the requested free text and clearly report replacement without a question. Missing quantity means 1 (one current unit when identifiable). Checked items reactivate with the requested quantity. Use set only for an explicit absolute correction. Report old_quantity, new_quantity and action; replayed means already processed, do not claim another addition. Optional note preserves existing text by default (append); note_mode=replace/clear only on explicit request. For pure note edits use operation=note, never ensure/increase: no quantity addition or reactivation. Never report not_executed or execution_unconfirmed as success or blindly retry uncertain writes.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Exact requested product/brand name. Never shorten, substitute brands or use synonyms."
+          },
+          "quantity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Free text quantity, e.g. 2 Packungen or 2 Tuben. Omitted means 1. For open items ensure and increase both add compatible quantities; otherwise replace with this value and report it. Checked items reactivate with this new quantity, never add to the old one. set is an explicit absolute correction."
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "For EVERY NEW product choose the best matching exact existing Yuvomi category and supply it on the FIRST call. Read list_shopping_categories first unless valid names are already in context. Never invent categories. Choose Sonstiges only when no specific existing category fits. Existing items always keep their Yuvomi category."
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "ensure",
+              "set",
+              "increase",
+              "note"
+            ],
+            "description": "ensure/increase: add to open items or replace incompatible/unparseable quantities, create new or reactivate checked items. Missing quantity defaults to 1. set: explicit absolute correction only; quantity required. note: edit ONLY an existing item note, without quantity/category/status changes; never use ensure for a note-only request."
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000,
+            "description": "Optional shopping note. Omit to preserve existing notes, including reactivation. With existing text default append; replace only when explicitly requested. Unicode/newlines supported."
+          },
+          "note_mode": {
+            "type": "string",
+            "enum": [
+              "append",
+              "replace",
+              "clear"
+            ],
+            "description": "Default append. replace explicitly replaces; clear explicitly deletes without a note field. For note-only edits use operation=note (no quantity or category)."
+          },
+          "list": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__add_shopping_items",
+      "description": "Ensure up to 20 items on one list; give category inside EACH new items[] object. Use current Yuvomi shopping state including checked items. Preserve existing names and categories. For every NEW item supply the best fitting category on the FIRST call from list_shopping_categories (unless known from context), never invent names and use Sonstiges only if no specific category fits; category_required returns valid names for a corrected call, with no writes. Never equate partial names, brands or size variants. Open products are updated on their existing ID, never duplicated. ensure and increase both add quantities for open items; if addition is unsafe, replace with the requested free text and clearly report replacement without a question. Missing quantity means 1 (one current unit when identifiable). Checked items reactivate with the requested quantity. Use set only for an explicit absolute correction. Report old_quantity, new_quantity and action; replayed means already processed, do not claim another addition. Optional note preserves existing text by default (append); note_mode=replace/clear only on explicit request. For pure note edits use operation=note, never ensure/increase: no quantity addition or reactivation. Never report not_executed or execution_unconfirmed as success or blindly retry uncertain writes.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Exact requested product/brand name. Never shorten, substitute brands or use synonyms."
+                },
+                "quantity": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Free text quantity, e.g. 2 Packungen or 2 Tuben. Omitted means 1. For open items ensure and increase both add compatible quantities; otherwise replace with this value and report it. Checked items reactivate with this new quantity, never add to the old one. set is an explicit absolute correction."
+                },
+                "category": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "For EVERY NEW product choose the best matching exact existing Yuvomi category and supply it on the FIRST call. Read list_shopping_categories first unless valid names are already in context. Never invent categories. Choose Sonstiges only when no specific existing category fits. Existing items always keep their Yuvomi category."
+                },
+                "operation": {
+                  "type": "string",
+                  "enum": [
+                    "ensure",
+                    "set",
+                    "increase",
+                    "note"
+                  ],
+                  "description": "ensure/increase: add to open items or replace incompatible/unparseable quantities, create new or reactivate checked items. Missing quantity defaults to 1. set: explicit absolute correction only; quantity required. note: edit ONLY an existing item note, without quantity/category/status changes; never use ensure for a note-only request."
+                },
+                "note": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 5000,
+                  "description": "Optional shopping note. Omit to preserve existing notes, including reactivation. With existing text default append; replace only when explicitly requested. Unicode/newlines supported."
+                },
+                "note_mode": {
+                  "type": "string",
+                  "enum": [
+                    "append",
+                    "replace",
+                    "clear"
+                  ],
+                  "description": "Default append. replace explicitly replaces; clear explicitly deletes without a note field. For note-only edits use operation=note (no quantity or category)."
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 20
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__call_api_operation",
+      "description": "Call any Yuvomi REST API operation from the live OpenAPI spec. Runs with the permissions of the authenticated MCP token — admin-only routes require an admin token.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "operation_key": {
+            "type": "string",
+            "description": "Operation key returned by list_api_operations."
+          },
+          "method": {
+            "type": "string",
+            "description": "HTTP method, used with path when operation_key is omitted."
+          },
+          "path": {
+            "type": "string",
+            "description": "OpenAPI path, used with method when operation_key is omitted."
+          },
+          "path_params": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Values for path template parameters."
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Query string parameters."
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "JSON request body."
+          },
+          "content_data": {
+            "type": "string",
+            "description": "Base64 or base64 data URL for binary uploads."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__create_event",
+      "description": "Create a calendar event.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Event title (required)."
+          },
+          "start_datetime": {
+            "type": "string",
+            "description": "Start, format YYYY-MM-DD or YYYY-MM-DDTHH:MM in household wall-clock time (required). A value with Z or a numeric offset is converted into the household time zone; for all-day events only its date counts."
+          },
+          "end_datetime": {
+            "type": "string",
+            "description": "Optional end, same format as start."
+          },
+          "all_day": {
+            "type": "boolean",
+            "description": "Whether the event lasts all day."
+          },
+          "location": {
+            "type": "string",
+            "description": "Optional location."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description."
+          }
+        },
+        "required": [
+          "title",
+          "start_datetime"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__create_recipe",
+      "description": "Create a Yuvomi recipe/menu as Mittagessen (lunch). Base servings default 4, stored with structured metadata in notes. Provide known reheatability, total cooking-to-serving time and justified health suggestion; ask when unknown. Preserve exact titles/variants. Resten is an ordinary recipe with optional empty ingredients. No images/links, menu planning, scaling or shopping transfer. Requires meals:read/write and shopping:read for ingredient categories. Never claim unconfirmed writes as success.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Exact recipe/menu title including variant/brand. Never shorten or silently substitute."
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "quantity": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "category": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                }
+              },
+              "required": [
+                "name",
+                "quantity",
+                "category"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 200,
+            "description": "Exact ingredient names and free-text quantities for basisportionen. Each category must exist in list_shopping_categories. Empty allowed for Resten; no pantry calculation."
+          },
+          "notes": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000,
+            "description": "Human-readable recipe instructions/notes. Omission preserves them; default appends. Structured menu metadata is managed separately."
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "wiederaufwärmbar": {
+                "type": "boolean"
+              },
+              "zubereitungszeit_min": {
+                "minimum": 0,
+                "maximum": 10080,
+                "type": "number",
+                "description": "Total elapsed minutes from cooking start until ready to serve, including waiting/baking."
+              },
+              "gesundheit": {
+                "minimum": 1,
+                "maximum": 5,
+                "type": "number"
+              },
+              "gesundheit_begruendung": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Reason for the health rating. An AI rating is a suggestion, never a human confirmation."
+              },
+              "mag_nicht": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "maxItems": 30
+              },
+              "basisportionen": {
+                "minimum": 1,
+                "maximum": 100,
+                "type": "number",
+                "description": "Base servings the ingredient quantities describe. Default 4 on creation; no automatic scaling."
+              }
+            },
+            "required": [
+              "wiederaufwärmbar",
+              "zubereitungszeit_min",
+              "gesundheit",
+              "gesundheit_begruendung"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "title",
+          "ingredients",
+          "metadata"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__create_task",
+      "description": "Create a new task on the family planner.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Short task title (required)."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional longer description."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "household",
+              "school",
+              "shopping",
+              "repair",
+              "health",
+              "finance",
+              "leisure",
+              "misc"
+            ],
+            "description": "Optional category."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "none",
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ],
+            "description": "Optional priority (default none)."
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Optional due date, format YYYY-MM-DD."
+          },
+          "due_time": {
+            "type": "string",
+            "description": "Optional due time, format HH:MM."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional free-form tags. Unlike the single category, a task can carry many. Mirrored to CATEGORIES on CalDAV task lists."
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__get_api_operation",
+      "description": "Return OpenAPI metadata for one Yuvomi API operation key.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "operation_key": {
+            "type": "string",
+            "description": "Operation key returned by list_api_operations."
+          }
+        },
+        "required": [
+          "operation_key"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__get_recipe",
+      "description": "Read one exact recipe ID from the complete Yuvomi recipe list (no single-recipe GET exists in 2.79.0).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "recipe_id": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "recipe_id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__list_api_operations",
+      "description": "List Yuvomi REST API operations reachable through call_api_operation.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string",
+            "description": "Optional OpenAPI tag filter (e.g. Budget, Calendar)."
+          },
+          "search": {
+            "type": "string",
+            "description": "Optional text search across key, path, tag and summary."
+          },
+          "include_parameters": {
+            "type": "boolean",
+            "description": "Include full OpenAPI parameter metadata."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__list_recipes",
+      "description": "Read Yuvomi recipes (family menus), ingredients, notes and menu metadata. No planning or shopping writes. Requires meals:read.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__list_shopping_categories",
+      "description": "Read all existing Yuvomi shopping category names via REST. Use only these categories when categorizing items.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__list_shopping_items",
+      "description": "List shopping items across all lists (unchecked by default).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "include_checked": {
+            "type": "boolean",
+            "description": "Also include already-checked items."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__list_tasks",
+      "description": "List the family's current top-level tasks (open by default). Optionally filter by status and tags. Each task carries its tags; tags are free-form labels mirrored from CalDAV task lists and are distinct from the single category a task has.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "in_progress",
+              "done",
+              "archived"
+            ],
+            "description": "Filter by task status. \"archived\" is not a status but the separate archive: it lists the filed-away tasks with whatever status they carry."
+          },
+          "include_future": {
+            "type": "boolean",
+            "description": "Include tasks that only start at a later date. Left out by default, matching the app: a task with a start date next week is not up yet."
+          },
+          "tag": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter by tags. Several tags narrow the list (a task must carry all of them). Case-insensitive."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__list_upcoming_events",
+      "description": "List upcoming calendar events from today onward.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "description": "Max number of events (1-100, default 20)."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__suggest_shopping_items",
+      "description": "Read Yuvomi shopping suggestions for q (prefix search). Only an exactly matching normalized name may supply a previous category. Similar names are different products. Never copy historical quantities automatically.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Shopping item name or prefix."
+          }
+        },
+        "required": [
+          "q"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__update_recipe",
+      "description": "Edit one native Yuvomi recipe ID. Read first. Omitted fields, existing free-text notes, meal types, links and images are preserved. Notes append by default; replace/clear only on explicit request. Metadata merges by field; an AI health rating remains a suggestion. Ingredient replacement is explicit and complete; quantities always refer to stored base servings. No automatic scaling or planning. Provider-mirrored recipes cannot be edited. Requires meals:read/write; shopping:read for changed ingredients. On concurrent_change or execution_unconfirmed do not blindly retry.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Exact recipe/menu title including variant/brand. Never shorten or silently substitute."
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "quantity": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "category": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                }
+              },
+              "required": [
+                "name",
+                "quantity",
+                "category"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 200,
+            "description": "Exact ingredient names and free-text quantities for basisportionen. Each category must exist in list_shopping_categories. Empty allowed for Resten; no pantry calculation."
+          },
+          "notes": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000,
+            "description": "Human-readable recipe instructions/notes. Omission preserves them; default appends. Structured menu metadata is managed separately."
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "wiederaufwärmbar": {
+                "type": "boolean"
+              },
+              "zubereitungszeit_min": {
+                "minimum": 0,
+                "maximum": 10080,
+                "type": "number",
+                "description": "Total elapsed minutes from cooking start until ready to serve, including waiting/baking."
+              },
+              "gesundheit": {
+                "minimum": 1,
+                "maximum": 5,
+                "type": "number"
+              },
+              "gesundheit_begruendung": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Reason for the health rating. An AI rating is a suggestion, never a human confirmation."
+              },
+              "mag_nicht": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "maxItems": 30
+              },
+              "basisportionen": {
+                "minimum": 1,
+                "maximum": 100,
+                "type": "number",
+                "description": "Base servings the ingredient quantities describe. Default 4 on creation; no automatic scaling."
+              }
+            },
+            "additionalProperties": false
+          },
+          "recipe_id": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "notes_mode": {
+            "type": "string",
+            "enum": [
+              "append",
+              "replace",
+              "clear"
+            ],
+            "description": "Only explicit replace/clear changes existing free-text notes; metadata remains. clear requires omission of notes."
+          }
+        },
+        "required": [
+          "recipe_id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+]

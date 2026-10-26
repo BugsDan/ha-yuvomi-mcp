@@ -25,7 +25,19 @@ class JournalOptions:
         try:
             journal = self._journal()
             if user_input is not None:
-                result = await self._runtime().purchasing.reconcile(user_input["execution"])
+                record = journal.data["journal"].get(user_input["execution"], {})
+                resource = record.get("resource", "shopping")
+                if resource == "recipes":
+                    engine = self._runtime().recipes
+                elif resource == "meals":
+                    engine = self._runtime().planning
+                elif resource == "shopping":
+                    engine = self._runtime().purchasing
+                else:
+                    engine = None
+                if engine is None:
+                    raise JournalError("Kein sicherer Beobachter für diese Ausführung verfügbar.")
+                result = await engine.reconcile(user_input["execution"])
                 return self.async_show_form(
                     step_id="execution_result",
                     data_schema=vol.Schema({}),
@@ -43,8 +55,11 @@ class JournalOptions:
                                 {
                                     "value": j["id"],
                                     "label": j["name"]
-                                    + " · Liste "
-                                    + str(j["list_id"])
+                                    + (
+                                        " · Rezepte"
+                                        if j.get("resource") == "recipes"
+                                        else " · Liste " + str(j["list_id"])
+                                    )
                                     + " · "
                                     + j["created_at"],
                                 }

@@ -19,7 +19,11 @@ from jsonschema import FormatChecker, validators
 from jsonschema.exceptions import SchemaError, ValidationError
 
 from .client import AuthenticationError, MCPClient, MCPError, RemoteTool
-from .const import KNOWN_TOOLS, READ_TOOLS
+from .const import KNOWN_TOOLS, MENU_TOOLS, READ_TOOLS, RECIPE_READS, RECIPE_WRITES
+from .descriptions import optimize
+from .menu_tools import menu_tools
+from .recipe_engine import Recipes
+from .recipes import RecipeAPI, recipe_tools
 from .shopping import CATEGORIES, SHOPPING_READS, shopping_tools
 
 TTL = 120.0
@@ -79,10 +83,20 @@ class Runtime:
     ):
         self.client = client
         self.purchasing = purchasing
+        self.planning = None
         self.journal = purchasing.journal if purchasing else None
+        self.recipes = Recipes(RecipeAPI(client), self.journal)
         # Local REST reads take precedence over an optional same-named remote
         # tool, avoiding duplicate LLM names and any need for a patched server.
-        self.tools = {**tools, **shopping_tools(include_single=purchasing is not None)}
+        self.tools = {
+            **tools,
+            **shopping_tools(include_single=purchasing is not None),
+            **recipe_tools(),
+            **menu_tools(),
+        }
+        for tool in self.tools.values():
+            _local_references_only(tool.schema)
+        self.tools = {name: optimize(tool) for name, tool in self.tools.items()}
         self._enabled = enabled
         self.clock = clock
         self.active = True
@@ -146,6 +160,9 @@ class Runtime:
 
     async def close(self):
         self.active = False
+        if self.planning:
+            await self.planning.close()
+        await self.recipes.close()
         if self.purchasing:
             await self.purchasing.close()
         self._cache.clear()
@@ -154,7 +171,9 @@ class Runtime:
             self._cleanup_handle.cancel()
             self._cleanup_handle = None
 
-    async def call(self, name: str, arguments: dict, *, call_id: str, scope: str, owner: str) -> dict:
+    async def call(
+        self, name: str, arguments: dict, *, call_id: str, scope: str, owner: str, actor=None
+    ) -> dict:
         """Recheck authorization even for tools held by an older API instance."""
         if name not in self.enabled():
             return failure("Dieses Yuvomi-Werkzeug ist nicht freigegeben.", "not_allowed")
@@ -187,7 +206,10 @@ class Runtime:
                     return failure("Dieses Yuvomi-Werkzeug ist nicht mehr freigegeben.", "not_allowed")
                 self._prune()
                 if name not in READ_TOOLS and key in self._cache:
-                    return deepcopy(self._cache[key][1])
+                    cached = deepcopy(self._cache[key][1])
+                    if name == "save_menu_plan":
+                        cached["replayed"] = True
+                    return cached
                 if name not in KNOWN_TOOLS:
                     # All unknown tools, including generic API access, require
                     # explicit approval of the exact arguments in HA's options UI.
@@ -209,7 +231,13 @@ class Runtime:
                         )
                     del self._approvals[fingerprint]  # consume before I/O
                 try:
-                    if self.purchasing is not None and name in {"add_shopping_item", "add_shopping_items"}:
+                    if name in MENU_TOOLS:
+                        if self.planning is None:
+                            return failure("Menüplanung nicht verfügbar.", "storage_unavailable")
+                        result = await self.planning.run(
+                            name, arguments, key, lambda: name in self.enabled(), owner=owner, actor=actor
+                        )
+                    elif self.purchasing is not None and name in {"add_shopping_item", "add_shopping_items"}:
                         result = await self.purchasing.run(
                             arguments,
                             key,
@@ -219,6 +247,10 @@ class Runtime:
                         )
                     elif name in {"add_shopping_item", "add_shopping_items"}:
                         return failure("Ausführungsjournal ist nicht geladen.", "storage_unavailable")
+                    elif name in RECIPE_READS | RECIPE_WRITES:
+                        result = await self.recipes.run(
+                            name, arguments, key, lambda: name in self.enabled(), owner=owner
+                        )
                     elif name in SHOPPING_READS:
                         data = (
                             await self.client.get_shopping_categories()

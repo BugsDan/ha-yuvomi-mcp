@@ -1,0 +1,145 @@
+{
+  "version": "2.79.0",
+  "commit": "a6812d433fc25a0f8bf1389542e68111f9169a82",
+  "verification": "unmodified commit sources verified against GitHub; no production access",
+  "sources": {
+    "server/routes/meals.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/server/routes/meals.js",
+      "sha256": "276d55a99645226f1f2499a8b51b3abaa839d7a40fbd4332233da9d35a64ddcc"
+    },
+    "server/openapi/paths/meals.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/server/openapi/paths/meals.js",
+      "sha256": "27ff5b75f277f8b82188069f7d88952129c8ed178980f2a2b8f731864caf9536"
+    },
+    "server/services/meal-recurrence.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/server/services/meal-recurrence.js",
+      "sha256": "9638e7e457b7109498dbbf52c16c13c8b2ee64a441be66b6961034c5738d663b"
+    },
+    "server/middleware/idempotency.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/server/middleware/idempotency.js",
+      "sha256": "b3ca89f508bd90133e9c8edf3c31041782a067427a64913201a17f884cf82e47"
+    },
+    "test/test-meals-routes.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/test/test-meals-routes.js",
+      "sha256": "2ec29f04ab526266e9195711b546c965f83e61099b6c1c20954c66f7ecc13f79"
+    },
+    "test/test-meals-recipe-entry.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/test/test-meals-recipe-entry.js",
+      "sha256": "197d4120d30a94c71dd8aaea2beb21f119c7f0b04e040f2025bf11ae7c31f563"
+    },
+    "test/test-idempotency.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/test/test-idempotency.js",
+      "sha256": "2a8a0233e64d6e0e97dcfd587aacf66b926b1ad320ce60ff56ef1e21ec25c486"
+    },
+    "test/test-browser-loader.mjs": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/test/test-browser-loader.mjs",
+      "sha256": "de7d9d790b30e0a7f44f64de12832d3f8bd320048dbbee96eb4d7e44e71422bf"
+    },
+    "server/mcp/tools.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/server/mcp/tools.js",
+      "sha256": "c1a0380c371a3a9f1f2b82fc19cc49189e73ed02aa18a8c1a32ff847e9b36f60"
+    },
+    "public/pages/meals.js": {
+      "url": "https://raw.githubusercontent.com/ulsklyc/yuvomi/a6812d433fc25a0f8bf1389542e68111f9169a82/public/pages/meals.js",
+      "sha256": "257eb7cc591c650aea48a3e9906ba96c7aeecc864a591e565418ad87c9eaca77",
+      "finding": "notes rendered as text in details and textarea; recipe action requires native recipe_id; no native meal servings UI found"
+    }
+  },
+  "ha_calendar": {
+    "version": "2026.10.2",
+    "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/components/calendar/__init__.py",
+    "sha256": "636382dd0858aa6f6199a77d4ce917f6cdb912136fc0251434369aa912727497"
+  },
+  "local_upstream_test_run": {
+    "node": "24.19.0",
+    "command": "node --loader ./test/test-browser-loader.mjs --experimental-sqlite --test test/test-meals-routes.js test/test-meals-recipe-entry.js test/test-idempotency.js",
+    "passed": 98,
+    "failed": 0,
+    "duration_ms": 5534.0086,
+    "database": "in-memory; local loopback HTTP only",
+    "scope_limit": "Meals API and middleware/UI fixtures; not production and not combined HA/LLM deployment."
+  },
+  "ha_calendar_services": {
+    "version": "2026.10.2",
+    "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/components/calendar/services.py",
+    "sha256": "c78387ac8fe0139312a6f4b2274fedcfb7568eb6ce3d763fc2af0adce8c2c815"
+  },
+  "ha_llm_api_review": {
+    "version": "2026.10.2",
+    "date": "2026-10-25",
+    "verification": "official tag sources fetched read-only; source inspection only, no running HA test or production access",
+    "sources": [
+      {
+        "path": "homeassistant/helpers/llm.py",
+        "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/helpers/llm.py",
+        "sha256": "7b4453aebb21460138ff75c5222594114f73a24df6d9aeea313af3cc7d1ee1e1",
+        "bytes": 26864
+      },
+      {
+        "path": "homeassistant/components/llm/__init__.py",
+        "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/components/llm/__init__.py",
+        "sha256": "cb0fead52f3dcd6e4f29b53184ccc48b4c0b7dd3c9ed6d566f46caee1399228c",
+        "bytes": 4878
+      },
+      {
+        "path": "homeassistant/components/conversation/chat_log.py",
+        "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/components/conversation/chat_log.py",
+        "sha256": "cbecafb79e129cb9f3632138931ca19acb027aec5887ae112013fbf62ec427ad",
+        "bytes": 28849
+      },
+      {
+        "path": "homeassistant/components/openai_conversation/config_flow.py",
+        "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/components/openai_conversation/config_flow.py",
+        "sha256": "213a325c450718b2fbf53afd9a2a47f8fa886726284c545870cb04c2f883d404",
+        "bytes": 31827
+      },
+      {
+        "path": "homeassistant/components/openai_conversation/conversation.py",
+        "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/components/openai_conversation/conversation.py",
+        "sha256": "824c736e9e69e3d440bde2eeb8a7277f531cdeb0bc70ab6ca22423cd94ac085e",
+        "bytes": 2985
+      },
+      {
+        "path": "homeassistant/components/ollama/config_flow.py",
+        "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/components/ollama/config_flow.py",
+        "sha256": "1da1287682ad4e819507c0f002a75f6feafadfab16522f0102fca69432a96f6a",
+        "bytes": 16622
+      },
+      {
+        "path": "homeassistant/components/google_generative_ai_conversation/config_flow.py",
+        "url": "https://raw.githubusercontent.com/home-assistant/core/2026.10.2/homeassistant/components/google_generative_ai_conversation/config_flow.py",
+        "sha256": "98af1696ffc529ffaef74ea20bd47edfc1cb30a0880159c85db16e2be6da5214",
+        "bytes": 19000
+      }
+    ],
+    "findings": [
+      "async_get_api supports str or list[str]; multiple APIs use MergedAPI",
+      "MergedAPI appends prompts and prefixes tool names using API display-name namespaces",
+      "API registration does not migrate agent selection or tool allowlists",
+      "additional Yuvomi API not authorized for implementation in 1.4.4"
+    ],
+    "local_reference_sources": [
+      {
+        "path": "../ha-assist-router/reference/prompt_compatibility/local/config_flow.py",
+        "sha256": "2d5f4237932f23c45809db1c6cdbd6e174753af2efd965830961f807a3c61f8f"
+      },
+      {
+        "path": "../ha-assist-router/reference/prompt_compatibility/local/conversation.py",
+        "sha256": "37051cc4e35acb4348979ed1557c6aa2666c17cc94b6bb96633394ceda2179a1"
+      },
+      {
+        "path": "../ha-assist-router/reference/prompt_compatibility/local/manifest.json",
+        "sha256": "d24759ba04cd552d7140fcfb55e722248d9489247f7dcb3c9a9cf28ea7cdaef0"
+      },
+      {
+        "path": "../ha-assist-router/custom_components/assist_router/conversation.py",
+        "sha256": "fc0435b5265902e581342a48891ccd61be5f30b4e6a315007a6ebda8dcfbf5cf"
+      },
+      {
+        "path": "custom_components/yuvomi_mcp/llm.py",
+        "sha256": "27cd61017e3ef4c8db36612f529a6bf716745ece9a93606a5716d500cd283a7b"
+      }
+    ],
+    "local_reference_limit": "Local OpenAI reference manifest 1.12.1 and local router source; actual installed versions/options not queried."
+  }
+}

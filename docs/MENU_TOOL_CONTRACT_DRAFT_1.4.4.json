@@ -1,0 +1,197 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__get_menu_planning_context",
+      "description": "Only for explicit menu planning/change/suggestion. Load relevant recipes, rules, profiles, attendance and current/previous periods. Existing slots stay unless explicitly changing this date; suggestions never write. Use an isolated planning conversation.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "create_period",
+              "replace_day",
+              "suggest_day"
+            ]
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "current",
+              "next"
+            ]
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "requested_recipe": {
+            "type": "string",
+            "description": "Exact user-named recipe title/variant, if any; bind context to one unambiguous recipe."
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__save_menu_plan",
+      "description": "Save Gemma-selected assignments only within the bound planning context. New plans fill free slots; explicit day changes replace only that authorized slot. Backend validates dates, portions and hard rules. Never sync shopping. No blind retry on uncertain/partial results.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "context_id": {
+            "type": "string"
+          },
+          "assignments": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "recipe_id": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "cook",
+                    "reheat",
+                    "rest",
+                    "emergency"
+                  ]
+                },
+                "source_date": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "For reheat: exact source cooking date from this context."
+                },
+                "extra_servings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "profile_id": {
+                        "type": "string"
+                      },
+                      "date": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "servings": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    },
+                    "required": [
+                      "profile_id",
+                      "date",
+                      "servings"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "date",
+                "recipe_id",
+                "kind"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "context_id",
+          "assignments"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__get_menu_plan",
+      "description": "Read saved meals, not full planning context. Default response is today/tomorrow within the requested period; full plan only on explicit request. No planning or shopping writes by HA; Yuvomi may materialize recurring entries on read.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "current",
+              "next"
+            ]
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "detail": {
+            "type": "string",
+            "enum": [
+              "brief",
+              "full"
+            ]
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "yuvomi_mcp__sync_menu_plan_shopping",
+      "description": "Separate explicit inventory/shopping workflow. preview returns stock-aware quantities; unknown is not zero. commit requires trusted approval of that exact preview, never an LLM boolean. Persistent receipts prevent repeat addition; never auto-sync after plan creation.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "preview",
+              "commit"
+            ]
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "list": {
+            "type": "string"
+          },
+          "preview_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+]

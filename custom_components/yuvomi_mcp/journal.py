@@ -28,6 +28,13 @@ def validate_journal(records):
     if not isinstance(records, dict) or len(records) > MAX_JOURNAL:
         raise JournalError("Ungültiges oder zu großes Ausführungsjournal. Nicht überschreiben.")
     for key, record in records.items():
+        methods = (
+            {"POST"}
+            if isinstance(record, dict) and record.get("resource") == "meals"
+            else {"POST", "PUT"}
+            if isinstance(record, dict) and record.get("resource") == "recipes"
+            else {"POST", "PATCH"}
+        )
         if (
             not isinstance(key, str)
             or not isinstance(record, dict)
@@ -35,13 +42,12 @@ def validate_journal(records):
             or record.get("state") not in {"prepared", "unknown", "done", "failed", "observed"}
             or type(record.get("list_id")) is not int
             or record["list_id"] < 1
-            or record.get("method") not in {None, "POST", "PATCH"}
+            or record.get("resource", "shopping") not in {"shopping", "recipes", "meals"}
+            or record.get("method") not in methods | {None}
             or not isinstance(record.get("name"), str)
             or (
                 record["state"] in {"prepared", "unknown"}
-                and (
-                    record.get("method") not in {"POST", "PATCH"} or not isinstance(record.get("body"), dict)
-                )
+                and (record.get("method") not in methods or not isinstance(record.get("body"), dict))
             )
             or (record["state"] in {"done", "observed"} and not isinstance(record.get("result"), dict))
         ):

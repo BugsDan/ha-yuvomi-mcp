@@ -1,8 +1,10 @@
-# Veröffentlichungsprüfung: ha-yuvomi-mcp / 1.4.2
+# Historische Veröffentlichungsprüfung der Baseline 1.4.2
+
+Dieser Bericht dokumentiert die abgeschlossene Baseline-Prüfung, nicht die aktuellen 1.4.3-Codeänderungen. Inzwischen bestehen Tag v1.4.2 und ein unveröffentlichter geprüfter Release-Entwurf. Für den lokalen Stand 1.4.3 gilt [TEST_REPORT_1.4.3.md](TEST_REPORT_1.4.3.md).
 
 ## Umfang
 
-Das öffentliche Repository [BugsDan/ha-yuvomi-mcp](https://github.com/BugsDan/ha-yuvomi-mcp) besteht. 1.4.2 ist die erste öffentliche Baseline; noch kein Tag oder Release. Die Bereinigung korrigiert ausschließlich zwei HA-Testdoubles/Importkontexte und die Dokumentation. Alle Dateien unter custom_components, Versionsfelder, Laufzeitabhängigkeiten und gespeicherte Konfigurationen bleiben unverändert.
+Das öffentliche Repository [BugsDan/ha-yuvomi-mcp](https://github.com/BugsDan/ha-yuvomi-mcp) besteht. 1.4.2 ist die erste öffentliche Baseline. Die damalige Bereinigung korrigierte ausschließlich zwei HA-Testdoubles/Importkontexte und die Dokumentation. Dabei blieben alle Dateien unter custom_components, Versionsfelder, Laufzeitabhängigkeiten und gespeicherte Konfigurationen unverändert.
 
 Die erste HA-CI-Ausführung 40206049922 fand zwei Fehler im Testaufbau. Der isolierte Setup-Import erhält nun den echten Paketkontext; die synchrone redact-Methode verwendet einen synchronen Mock. Keine Tests oder Assertions entfernt, keine Fehler ignoriert und keine Laufzeitfunktion angepasst.
 

@@ -298,7 +298,7 @@ def test_model_visible_single_and_bulk_schemas_share_described_parameters():
     assert item["required"] == single["required"] == ["name"]
     assert "NEW" in item["properties"]["category"]["description"]
     assert "free text" in item["properties"]["quantity"]["description"].lower()
-    assert item["properties"]["operation"]["enum"] == ["ensure", "set", "increase"]
+    assert item["properties"]["operation"]["enum"] == ["ensure", "set", "increase", "note"]
 
 
 @pytest.mark.parametrize("quantity", ["1 Flasche", "2 Tuben", "1 Packung", " 2 Tuben "])

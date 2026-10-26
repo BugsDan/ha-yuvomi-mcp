@@ -47,12 +47,14 @@
         "menu_options": {
           "tools": "Werkzeuge freigeben",
           "approve": "Aktion bestätigen",
-          "executions": "Unklare Ausführungen lesend prüfen"
+          "executions": "Unklare Ausführungen lesend prüfen",
+          "exposure": "LLM-API auswählen",
+          "planning": "Menüplanung einrichten"
         }
       },
       "tools": {
         "title": "Werkzeuge freigeben",
-        "description": "Nur ausgewählte Werkzeuge stehen Assist zur Verfügung. Neue Werkzeuge bleiben gesperrt. add_shopping_item verwendet den Produktkatalog und feste REST-Pfade für Bestandsprüfung, Reaktivierung und Neuanlage. shopping:write ist erforderlich und schließt serverseitig Lesen ein. add_shopping_items ist optional und muss ausdrücklich aktiviert werden. Generische und unbekannte Werkzeuge benötigen weiterhin die konkrete Aktionsbestätigung. Speichern lädt bei geänderter Auswahl neu.",
+        "description": "Nur ausgewählte Werkzeuge sind verfügbar. Neue Rezept- und Menüwerkzeuge bleiben gesperrt, bis sie bewusst gewählt werden. Yuvomi bleibt einzige Produktquelle. Generische und unbekannte Werkzeuge benötigen weiterhin die konkrete Aktionsbestätigung. Menüplanung braucht meals:read/write; keine automatische Einkaufsübertragung.",
         "data": {
           "enabled_tools": "Freigegebene Yuvomi-Werkzeuge"
         }
@@ -87,10 +89,37 @@
         "title": "Ausführung prüfen",
         "description": "{message}\n\nZurück zur Übersicht; ursprünglichen Zustand prüfen.",
         "data": {}
+      },
+      "exposure": {
+        "title": "Yuvomi-Werkzeuge bereitstellen",
+        "description": "assist erhält das bisherige Verhalten. dedicated stellt dieselben freigegebenen Werkzeuge ausschliesslich über die API „Yuvomi MCP Familie“ bereit. Diese API danach bewusst im Conversation Agent auswählen; vorhandene Agenten werden nicht geändert. Rückkehr zu assist ist möglich. Werkzeugfreigaben bleiben erhalten.",
+        "data": {
+          "exposure_mode": "Expositionsmodus"
+        }
+      },
+      "planning": {
+        "title": "Menüplanung",
+        "description": "Vier ist die Rezeptbasis, nicht die Mindestmenge einer Mahlzeit. Profile enthalten name, days, portion, reheat_days, dislikes und preferences. Tage verwenden 0=Montag bis 6=Sonntag. Zeitlimits umfassen Koch-, Gar-, Back- und Wartezeit. Kalender zunächst leer lassen; nur ausdrücklich ausgewählte Entities in Regeln verwenden. Die strukturierten Felder sind ohne YAML-Dateien editierbar und werden streng validiert. Vollständige Beispiele: docs/SETUP_1.4.4.md.",
+        "data": {
+          "timezone": "Zeitzone",
+          "anchor_date": "Ankerdatum der Planungsperiode (YYYY-MM-DD)",
+          "meal_time": "Mahlzeitzeit (HH:MM)",
+          "meal_type": "Mahlzeittyp (lunch/breakfast/dinner/snack)",
+          "length_days": "Periodenlänge in Tagen (1–31)",
+          "shopping_day": "Einkaufstag (0=Montag bis 6=Sonntag)",
+          "max_reheat_days": "Maximaler Aufwärmabstand in Kalendertagen",
+          "profiles": "Familienprofile nach stabiler Profil-ID",
+          "calendars": "Kalenderregeln nach Regel-ID",
+          "time_limits": "Gesamte Zeitlimits je Wochentag (0–6)",
+          "calendar_entities": "Ausdrücklich erlaubte Kalender",
+          "advanced": "Planungstage, Resten-/Notfall-IDs und Aufwärmzeit"
+        }
       }
     },
     "error": {
-      "invalid_tools": "Nur aktuell erkannte Werkzeuge auswählen."
+      "invalid_tools": "Nur aktuell erkannte Werkzeuge auswählen.",
+      "invalid_exposure": "assist oder dedicated wählen.",
+      "invalid_planning": "Konfiguration ungültig: Datumsanker, Profile, ausgewählte Kalender, Zeiten und Ausnahmen prüfen."
     },
     "abort": {
       "refresh_failed": "Werkzeuge konnten nicht aktualisiert werden. Verbindung, Token oder Schema prüfen.",
@@ -98,7 +127,9 @@
       "approval_expired": "Die Anfrage ist abgelaufen oder nicht mehr verfügbar. Aktion erneut anfordern.",
       "approved": "Aktion einmalig freigegeben. Jetzt dieselbe Aktion innerhalb der ursprünglichen Zwei-Minuten-Frist erneut über Assist anfordern.",
       "approval_cancelled": "Die Aktion wurde nicht freigegeben.",
-      "no_executions": "Keine unklaren Ausführungen vorhanden."
+      "no_executions": "Keine unklaren Ausführungen vorhanden.",
+      "planning_saved": "Planungskonfiguration gespeichert; vorhandene Yuvomi-Einträge bleiben unverändert.",
+      "planning_unavailable": "Planungsspeicher nicht verfügbar. Integration und Sicherung prüfen."
     }
   }
 }

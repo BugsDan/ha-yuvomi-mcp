@@ -72,20 +72,26 @@ class ShoppingAPI:
             or type(row.get("is_checked")) not in {int, bool}
             or row["is_checked"] not in (0, 1)
             or not isinstance(row.get("quantity"), (str, type(None)))
+            or "notes" not in row
+            or not isinstance(row.get("notes"), (str, type(None)))
         ):
             raise ShoppingFailure("invalid_response", "Ungültiger Yuvomi-Einkaufsartikel.")
         positive_id(row.get("id"))
 
     async def create(self, list_id, body, key):
         positive_id(list_id)
-        if set(body) - {"name", "quantity", "category"} or not isinstance(key, str) or not key.isascii():
+        if (
+            set(body) - {"name", "quantity", "category", "notes"}
+            or not isinstance(key, str)
+            or not key.isascii()
+        ):
             raise ShoppingFailure("invalid_arguments", "Ungültige Einkaufsparameter.")
         return await self._write("POST", f"/api/v1/shopping/{list_id}/items", body, list_id, key)
 
     async def update(self, list_id, item_id, body):
         positive_id(list_id)
         positive_id(item_id)
-        if set(body) - {"is_checked", "quantity", "category"}:
+        if set(body) - {"is_checked", "quantity", "category", "notes"}:
             raise ShoppingFailure("invalid_arguments", "Diese Artikeländerung ist nicht erlaubt.")
         result = await self._write("PATCH", f"/api/v1/shopping/items/{item_id}", body, list_id)
         if result["id"] != item_id:

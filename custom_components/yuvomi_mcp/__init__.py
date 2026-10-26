@@ -10,9 +10,12 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .client import AuthenticationError, MCPClient, MCPError
-from .const import CONF_TOKEN, CONF_TOOLS, DOMAIN
+from .const import CONF_EXPOSURE, CONF_TOKEN, CONF_TOOLS, DOMAIN
 from .journal import JournalError
-from .persistence import load_journal
+from .meals_api import MealAPI
+from .menu_planning import MenuPlanning
+from .persistence import load_journal, planning_store
+from .planning_calendar import calendar_reader
 from .purchasing import Purchasing
 from .runtime import Runtime
 from .shopping_api import ShoppingAPI
@@ -40,6 +43,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryAuthFailed("Der Yuvomi-API-Token ist ungültig.") from None
     except MCPError:
         raise ConfigEntryNotReady("Die Yuvomi-MCP-Verbindung konnte nicht eingerichtet werden.") from None
+    runtime.planning = MenuPlanning(
+        MealAPI(client), runtime.recipes, planning_store(hass, entry), journal, calendar_reader(hass)
+    )
+    runtime.exposure = lambda: entry.options.get(CONF_EXPOSURE, "assist")
+    from homeassistant.helpers import llm
+
+    from .llm import YuvomiAPI
+
+    entry.async_on_unload(llm.async_register_api(hass, YuvomiAPI(hass, entry, runtime)))
     entry.runtime_data = runtime
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = runtime
     entry.async_on_unload(entry.add_update_listener(_async_update_options))

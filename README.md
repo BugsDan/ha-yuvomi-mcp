@@ -1,4 +1,6 @@
-# Yuvomi MCP 1.4.2 für Home Assistant
+# Yuvomi MCP 1.4.4 für Home Assistant
+
+**Lokaler Entwicklungsstand, noch nicht veröffentlicht.** Die erste öffentliche Baseline ist 1.4.2. Neue Funktionen: [Einkaufsnotizen und Rezeptpflege](docs/NOTES_AND_RECIPES.md). Neu: ausdrücklich freizugebende Menüplanung, konfigurierbare Familien-/Kalenderregeln und eine optionale eigene Yuvomi-LLM-API. [Einrichtung und Grenzen](docs/SETUP_1.4.4.md), [lokaler Testbericht](docs/TEST_REPORT_1.4.4.md).
 
 Yuvomi 2.79.0 ist die einzige Quelle für Einkaufsnamen, Kategorien, Mengen und Status. Die Integration stellt weiterhin explizit freigegebene Werkzeuge über die native HA-LLM-Plattform bereit. Aufgaben und Kalender laufen unverändert über MCP. Keine Serveränderung, zusätzliche Datenbank oder Installation durch dieses Release.
 
@@ -87,4 +89,4 @@ Andere Yuvomi-Clients sind nicht Teil der HA-Sperre. Vor PATCH werden Name, Kate
 
 ## Installation und Abnahme
 
-Siehe [ABNAHME.md](docs/ABNAHME.md) und [RELEASE_1.4.2.md](docs/RELEASE_1.4.2.md). Ein Token mit `shopping:read` und `shopping:write` wird für Einkaufsaktionen benötigt; Rechte werden serverseitig geprüft. Allgemeine REST-Schreibwerkzeuge sind nicht erforderlich. Keine Codeänderung am Assist Router nötig. Hinweise zur Anpassung zentraler Systemprompts: docs/PROMPT_1.4.2.md. Die geplanten Notizfunktionen für 1.4.3 sind in [Anforderungen 1.4.3](docs/PLAN_1.4.3.md) beschrieben und noch nicht implementiert.
+Siehe [ABNAHME.md](docs/ABNAHME.md) und [RELEASE_1.4.2.md](docs/RELEASE_1.4.2.md). Ein Token mit `shopping:read` und `shopping:write` wird für Einkaufsaktionen benötigt; Rechte werden serverseitig geprüft. Allgemeine REST-Schreibwerkzeuge sind nicht erforderlich. Keine Codeänderung am Assist Router nötig. Hinweise zur Anpassung zentraler Systemprompts: docs/PROMPT_1.4.2.md. Notiz- und Rezeptpflege sowie neue Werkzeugfreigaben: [Anleitung 1.4.3](docs/NOTES_AND_RECIPES.md).

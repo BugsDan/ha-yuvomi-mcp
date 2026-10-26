@@ -8,6 +8,7 @@ from hashlib import sha256
 from uuid import uuid4
 
 from .journal import MAX_JOURNAL, JournalError, now, text
+from .notes import edit_note
 from .quantities import add_or_replace, quantity_key
 from .shopping import normalized_name, resolve_category
 from .shopping_api import ShoppingFailure
@@ -54,7 +55,9 @@ class Purchasing:
         return [
             j
             for j in self.journal.data["journal"].values()
-            if j["list_id"] == list_id and j["state"] in {"prepared", "unknown"}
+            if j.get("resource", "shopping") == "shopping"
+            and j["list_id"] == list_id
+            and j["state"] in {"prepared", "unknown"}
         ]
 
     async def run(self, arguments, request_key, authorized, *, bulk=False, owner=""):
@@ -131,12 +134,27 @@ class Purchasing:
                         plan["intent"] = (
                             sha256(
                                 json.dumps(
-                                    [owner, list_id, identity, quantity_key(plan["requested_quantity"])],
+                                    [owner, list_id, identity, quantity_key(plan["requested_quantity"])]
+                                    + (
+                                        [
+                                            item.get("operation", "ensure")
+                                            if item.get("operation") in {"note", "set"}
+                                            else "shopping",
+                                            item.get("note_mode", "append"),
+                                            item.get("note"),
+                                        ]
+                                        if "note" in item or "note_mode" in item
+                                        else []
+                                    ),
                                     ensure_ascii=False,
                                     separators=(",", ":"),
                                 ).encode()
                             ).hexdigest()
-                            if item.get("operation", "ensure") != "set"
+                            if (
+                                item.get("operation", "ensure") != "set"
+                                or "note" in item
+                                or "note_mode" in item
+                            )
                             else None
                         )
                         recent = self.recent(plan, list_id)
@@ -147,8 +165,12 @@ class Purchasing:
                                 target is None
                                 or target["id"] != plan["item_id"]
                                 or normalized_name(target["name"]) != plan["identity"]
-                                or target["is_checked"]
+                                or (target["is_checked"] and item.get("operation") != "note")
                                 or target["quantity"] != previous.get("quantity")
+                                or (
+                                    ("note" in item or "note_mode" in item)
+                                    and target.get("notes") != previous.get("note")
+                                )
                             ):
                                 raise ShoppingFailure(
                                     "execution_unconfirmed",
@@ -261,12 +283,17 @@ class Purchasing:
             return response(results, code, str(err))
 
     def recent(self, plan, list_id):
-        if not plan.get("intent") or not plan["before"] or plan["before"]["is_checked"]:
+        if (
+            not plan.get("intent")
+            or not plan["before"]
+            or (plan["before"]["is_checked"] and plan.get("operation") != "note")
+        ):
             return None
         cutoff = datetime.now(timezone.utc) - timedelta(seconds=120)
         for record in reversed(list(self.journal.data["journal"].values())):
             if (
-                record["list_id"] != list_id
+                record.get("resource", "shopping") != "shopping"
+                or record["list_id"] != list_id
                 or record["state"] not in {"done", "observed"}
                 or normalized_name(record["name"]) != plan["identity"]
                 or datetime.fromisoformat(record.get("intent_created_at", record["created_at"])) <= cutoff
@@ -277,6 +304,7 @@ class Purchasing:
             # Preserve the conservative repeat barrier for pre-1.4.2 additions.
             if (
                 "intent" not in record
+                and not plan.get("note_requested")
                 and record.get("delta")
                 and quantity_key(record["delta"]) == quantity_key(plan["requested_quantity"])
             ):
@@ -300,6 +328,15 @@ class Purchasing:
             "action": plan["action"],
             "replacement_reason": plan["replacement_reason"],
             "quantity_defaulted": plan["defaulted"],
+            **(
+                {
+                    "old_note": plan["old_note"],
+                    "note": plan["note"],
+                    "note_changed": plan["note"] != plan["old_note"],
+                }
+                if plan.get("note_requested")
+                else {}
+            ),
         }
 
     async def plan(self, args, rows, categories):
@@ -313,6 +350,16 @@ class Purchasing:
                 "product_unclear", "Mehrere gleichnamige Yuvomi-Artikel. Bitte klären; nichts bereinigt."
             )
         existing = opened[0] if opened else (checked[0] if checked else None)
+        operation = args.get("operation", "ensure")
+        if operation == "note" and (not existing or "quantity" in args or "category" in args):
+            raise ShoppingFailure(
+                "invalid_note", "Reine Notizänderung benötigt bestehenden Artikel, ohne Menge/Kategorie."
+            )
+        old_note = existing.get("notes") if existing else None
+        note_requested = "note" in args or "note_mode" in args
+        if operation == "note" and not note_requested:
+            raise ShoppingFailure("invalid_note", "Notizänderung oder ausdrückliches clear erforderlich.")
+        new_note = edit_note(old_note, args)
         if existing:
             # Yuvomi wins, even over a malformed model suggestion. Never rename it.
             category = existing["category"]
@@ -331,7 +378,7 @@ class Purchasing:
                     + json.dumps([c["name"] for c in categories], ensure_ascii=False),
                 )
         operation = args.get("operation", "ensure")
-        if operation not in {"ensure", "set", "increase"}:
+        if operation not in {"ensure", "set", "increase", "note"}:
             raise ShoppingFailure("invalid_arguments", "Unbekannte Mengenoperation.")
         quantity = args.get("quantity")
         if quantity is not None:
@@ -350,7 +397,14 @@ class Purchasing:
         requested_quantity = quantity if quantity is not None else "1"
         old_quantity = existing["quantity"] if existing else None
         reason = None
-        if opened:
+        if operation == "note":
+            quantity = old_quantity
+            body = {"notes": new_note} if new_note != old_note else None
+            method = "PATCH" if body else None
+            status = "note_updated" if body else "already_present"
+            action = "note_updated" if body else "unchanged"
+            defaulted = False
+        elif opened:
             if operation == "set":
                 quantity = requested_quantity
                 action = "replaced" if quantity != old_quantity else "unchanged"
@@ -372,7 +426,16 @@ class Purchasing:
             quantity = requested_quantity
             body = {"name": name, "quantity": quantity, "category": category}
             method, status, action = "POST", "created", "created"
+        if operation != "note" and note_requested and new_note != old_note:
+            body = {**(body or {}), "notes": new_note}
+            method = method or "PATCH"
+            if status == "already_present":
+                status, action = "note_updated", "note_updated"
         return {
+            "operation": operation,
+            "note_requested": note_requested,
+            "old_note": old_note,
+            "note": new_note,
             "name": existing["name"] if existing else name,
             "identity": identity,
             "category": category,
@@ -386,8 +449,8 @@ class Purchasing:
             "action": action,
             "replacement_reason": reason,
             "defaulted": defaulted,
-            "delta": requested_quantity if operation != "set" else None,
-            "before": {k: existing[k] for k in ("name", "quantity", "category", "is_checked")}
+            "delta": requested_quantity if operation not in {"set", "note"} else None,
+            "before": {k: existing.get(k) for k in ("name", "quantity", "category", "is_checked", "notes")}
             if existing
             else None,
         }
@@ -425,6 +488,7 @@ class Purchasing:
                 "intent": plan.get("intent"),
                 "intent_created_at": plan.get("intent_created_at", now()),
                 "old_quantity": plan["old_quantity"],
+                "old_note": plan.get("old_note"),
                 "action": plan["action"],
                 "replacement_reason": plan["replacement_reason"],
             }
@@ -440,7 +504,11 @@ class Purchasing:
     async def reconcile(self, key):
         """Admin read-only review. Never resend a POST/PATCH to find its outcome."""
         journal = self.journal.data["journal"].get(key)
-        if not journal or journal["state"] not in {"prepared", "unknown"}:
+        if (
+            not journal
+            or journal.get("resource", "shopping") != "shopping"
+            or journal["state"] not in {"prepared", "unknown"}
+        ):
             raise JournalError("Keine offene Ausführung.")
         list_id = journal["list_id"]
         lock = self.locks.setdefault(list_id, asyncio.Lock())
@@ -478,6 +546,11 @@ class Purchasing:
                     "old_quantity": journal.get("old_quantity"),
                     "new_quantity": matches[0]["quantity"],
                     "action": "state_observed",
+                    **(
+                        {"old_note": journal.get("old_note"), "note": matches[0].get("notes")}
+                        if "notes" in journal["body"]
+                        else {}
+                    ),
                     "message": "Zustand beobachtet; eigene Ausführung nicht bewiesen. Keine Wiederholung.",
                 },
             )

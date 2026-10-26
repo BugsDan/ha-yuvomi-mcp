@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, test/v1.4.4]
   pull_request:
   workflow_dispatch:
   workflow_call:
@@ -21,10 +21,16 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install -e '.[test]'
-      - run: python -m pytest -q
+      - run: python -m pytest -q -ra --junitxml=test-results.xml
       - run: ruff check custom_components tests tools
       - run: ruff format --check custom_components tests tools
-      - run: python tools/check_repository.py
+      - run: python tools/check_repository.py --staged
+      - run: python tools/build_release.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: test-results.xml
 
   home-assistant:
     runs-on: ubuntu-latest
@@ -38,8 +44,14 @@ jobs:
       - run: python -m pip install -e '.[test]' homeassistant==2026.10.2
       - name: Require real HA runtime before platform tests
         run: python -c 'import homeassistant; from homeassistant.components import llm'
-      - run: python -m pytest -q
+      - run: python -m pytest -q -ra --junitxml=test-results-ha.xml
+      - run: python tools/check_test_report.py test-results-ha.xml --no-skips
       - run: python tools/check_ha_api.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: home-assistant-test-results
+          path: test-results-ha.xml
 
   hassfest:
     runs-on: ubuntu-latest
@@ -59,3 +71,15 @@ jobs:
         with:
           category: integration
           comment: false
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITLEAKS_ENABLE_COMMENTS: 'false'

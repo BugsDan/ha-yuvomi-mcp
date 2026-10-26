@@ -20,4 +20,10 @@ def test_no_active_product_database_or_options_remain():
     assert not (component / "catalog.py").exists()
     assert not (component / "catalog_ui.py").exists()
     strings = json.loads((component / "strings.json").read_text(encoding="utf-8"))
-    assert set(strings["options"]["step"]["init"]["menu_options"]) == {"tools", "approve", "executions"}
+    assert set(strings["options"]["step"]["init"]["menu_options"]) == {
+        "tools",
+        "exposure",
+        "planning",
+        "approve",
+        "executions",
+    }

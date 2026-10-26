@@ -10,8 +10,9 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .client import MCPClient, MCPError, normalize_url
-from .const import CONF_TOKEN, CONF_TOOLS, DEFAULT_TOOLS, DEFAULT_URL, DOMAIN
+from .const import CONF_EXPOSURE, CONF_TOKEN, CONF_TOOLS, DEFAULT_TOOLS, DEFAULT_URL, DOMAIN
 from .journal_ui import JournalOptions
+from .planning_ui import PlanningOptions
 from .runtime import Runtime
 
 
@@ -94,7 +95,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return OptionsFlow()
 
 
-class OptionsFlow(JournalOptions, config_entries.OptionsFlow):
+class OptionsFlow(PlanningOptions, JournalOptions, config_entries.OptionsFlow):
     _tools = None
     _request_id = None
 
@@ -103,9 +104,32 @@ class OptionsFlow(JournalOptions, config_entries.OptionsFlow):
             step_id="init",
             menu_options=[
                 "tools",
+                "exposure",
+                "planning",
                 "approve",
                 "executions",
             ],
+        )
+
+    async def async_step_exposure(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            mode = user_input.get(CONF_EXPOSURE)
+            if mode in {"assist", "dedicated"}:
+                return self.async_create_entry(
+                    title="", data={**self.config_entry.options, CONF_EXPOSURE: mode}
+                )
+            errors["base"] = "invalid_exposure"
+        return self.async_show_form(
+            step_id="exposure",
+            errors=errors,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_EXPOSURE, default=self.config_entry.options.get(CONF_EXPOSURE, "assist")
+                    ): selector.SelectSelector(selector.SelectSelectorConfig(options=["assist", "dedicated"]))
+                }
+            ),
         )
 
     async def async_step_tools(self, user_input=None):

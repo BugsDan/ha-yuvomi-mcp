@@ -2,7 +2,7 @@
 
 ## Stand und Architektur
 
-Das öffentliche Repository besteht. 1.4.2 ist die erste öffentliche Baseline; ein Tag und Release werden erst nach gesonderter Freigabe erstellt. Die MIT-Lizenz bleibt erhalten. Keine externe Grafik oder Serverquellcodes werden mitveröffentlicht.
+Das öffentliche Repository besteht. 1.4.2 ist die erste öffentliche Baseline; der annotierte Tag und ein unveröffentlichter Release-Entwurf bestehen bereits. 1.4.3 ist ausschließlich lokal in Entwicklung; kein Push oder Tag für diesen Stand. Die MIT-Lizenz bleibt erhalten. Keine externe Grafik oder Serverquellcodes werden mitveröffentlicht.
 
 Die HACS-Struktur ist custom_components/yuvomi_mcp. hacs.json liegt im Repository-Stamm, verlangt mindestens HA 2026.10.2 und blendet den Default-Branch für Installationen aus. zip_release=false: HACS liest ausschließlich die Integration aus dem gewählten Release-Tag. Die bisherigen ZIP-Dateien haben ein anderes Ziel, nämlich die manuelle Installation, und werden nicht als flaches HACS-Asset ausgegeben. Es wird kein persistent_directory benötigt: die erhaltenen Zustände liegen in HA .storage außerhalb des Integrationscodes.
 
@@ -11,6 +11,8 @@ Die HACS-Struktur ist custom_components/yuvomi_mcp. hacs.json liegt im Repositor
 Das öffentliche Repository und main bestehen bereits. Nur freigegebene Quelldateien übertragen, keine privaten Entwicklungsverzeichnisse oder alten ZIPs. Vor jedem Commit `git diff --cached` prüfen und `python tools/check_repository.py --staged` ausführen; der Check liest tatsächliche Index-Blobs. Kein eigener PAT oder produktiver HA-/Yuvomi-Token für CI nötig. Secret-Scanning und Push-Protection sind ergänzende, vom Betreiber zu prüfende Repository-Einstellungen.
 
 ## Erstes Release v1.4.2
+
+Die folgenden Schritte beschreiben den Ablauf am zugehörigen geprüften 1.4.2-Commit. Der Entwurf wurde bereits erzeugt und geprüft; Veröffentlichung bleibt ausdrücklich separat freizugeben. Den lokalen 1.4.3-Entwicklungsstand nicht nachträglich als 1.4.2 taggen.
 
 1. Actions unter main prüfen: Python-3.12-Tests, Linux/Python-3.14-Tests mit HA 2026.10.2, lokale Publikationsprüfung, HACS Action und hassfest. Rote Checks beheben; keine Validierung als bestanden behaupten, solange GitHub sie nicht ausgeführt hat.
 2. Erst danach lokal Versionen prüfen: manifest.version = const.VERSION = project.version = 1.4.2; docs/RELEASE_1.4.2.md vorhanden. `python tools/check_repository.py --tag v1.4.2` muss bestehen.
