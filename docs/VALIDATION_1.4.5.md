@@ -1,4 +1,12 @@
-# Lokale Abnahme 1.4.5
+# Abnahme 1.4.5
+
+## GitHub-CI-Abnahme
+
+Der freigegebene Implementierungscommit `19e69729b101a195f237b876f56ae499877f092b` wurde in [GitHub Actions](https://github.com/BugsDan/ha-yuvomi-mcp/actions/runs/41043695270) vollständig geprüft: 602 Unit-/Regressionstests bestanden, zwei HA-Testmodule dort mangels HA übersprungen; im separaten echten HA-2026.10.2-Job mit Python 3.14.9 bestanden alle 631 Tests ohne übersprungene Tests. Ruff, Formatprüfung, Repository-/Paketprüfung, offizielle HACS-Validierung (zehn Prüfungen), hassfest und Gitleaks waren erfolgreich. Gitleaks prüfte den neuen Commit; dies ist keine Aussage über die gesamte Repository-Historie. Die folgenden lokalen Ergebnisse sind die historische Vorprüfung, keine verbleibende CI-Sperre.
+
+Für die Veröffentlichung werden ausschliesslich Statusangaben und dieser Prüfbericht ergänzt; Testbranch, main und Release-Workflow müssen erneut erfolgreich sein. Die endgültigen Läufe sind über die Actions des Release-Tags nachvollziehbar.
+
+## Historische lokale Vorprüfung
 
 Stand: 30.10.2026. Lokaler Entwicklungskandidat auf `dev/planning-reliability`, Basis `896e523157be158e5366cb6ad486db4c342e7a1e` (veröffentlichtes v1.4.4-rc3). Kein Commit, Push, Tag, Release oder produktiver Zugriff. Bereits vorhandene unveröffentlichte Planungsverbesserungen wurden als Grundlage weitergeführt.
 
@@ -23,7 +31,7 @@ python tools/build_release.py
 
 Der rohe lokale JUnit-Bericht bleibt im ignorierten Testverzeichnis, nicht im öffentlichen Quellpaket. Die ZIPs enthalten nur die explizite Publikationsdateiliste; keine HA-Stores, Zugangsdaten, Testtempverzeichnisse oder Git-Daten.
 
-## Was lokal nicht bestätigt ist
+## Grenzen der damaligen lokalen Prüfung
 
 Die Windows-Testumgebung besitzt Python 3.12 und kein importierbares Home Assistant. `tests/test_ha_runtime.py` und `tests/test_homeassistant.py` werden deshalb am Modulimport übersprungen. **Keine erfolgreiche echte HA-2026.10.2-Laufzeitprüfung für diesen neuen Stand behaupten.** Vorherige RC3-CI-Ergebnisse sind kein Nachweis für 1.4.5.
 
@@ -40,4 +48,4 @@ Die lokale HACS-Prüfung betrifft Metadaten, Verzeichnis-/Paketlayout und Versio
 - Der GUI-Skalierungsregler bleibt 1; tatsächliche Zutaten werden einmal korrekt skaliert gespeichert. Manuelle Rezept-Neuauswahl kann Notizen/Annotationen/Zutaten ersetzen.
 - Vollständige Planung weiterhin in bewusst separater Conversation, Kontextgültigkeit fünf Minuten. Keine automatische Isolation und keine Routeränderung.
 
-Empfohlen: lokalen Diff und Vertrag prüfen, danach separat einen CI-Testbranch/Push freigeben. Erst nach grüner echter HA-/HACS-/hassfest-Abnahme in einer isolierten Testinstallation Kochpersonen, Kalender, fünf Kochtage, Mitnahmezuordnungen, Mengen, Titel und Tagesänderungen prüfen. Produktionsinstallation und Veröffentlichung benötigen weiterhin ausdrückliche Freigabe.
+Nach erfolgreicher GitHub-CI-Abnahme und ausdrücklich freigegebener Veröffentlichung weiterhin in einer isolierten Testinstallation Kochpersonen, Kalender, fünf Kochtage, Mitnahmezuordnungen, Mengen, Titel und Tagesänderungen prüfen. Eine Produktionsinstallation erfolgt nicht im Rahmen der Veröffentlichung und benötigt eine separate Freigabe.

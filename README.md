@@ -1,12 +1,12 @@
 # Yuvomi MCP 1.4.5 für Home Assistant
 
-**Lokaler Entwicklungskandidat – nicht veröffentlicht.** Veröffentlichte Testbasis: v1.4.4-rc3. Neu in 1.4.5: einfachere Familien-/Wochenkonfiguration, backendberechnete Mitnahmeportionen ohne zusätzliche Kalendermahlzeiten, Wochenabweichungen und kompakter Planungsschreibvertrag. [Einrichtung und Grenzen](docs/SETUP_1.4.5.md), [Prüfbericht](docs/VALIDATION_1.4.5.md), [Release-Entwurf](docs/RELEASE_1.4.5.md). Vor neuen Planungsaktionen die Standardwoche ausdrücklich neu konfigurieren; bestehende Yuvomi-Daten und Journale bleiben erhalten.
+**Version 1.4.5.** Neu in 1.4.5: einfachere Familien-/Wochenkonfiguration, backendberechnete Mitnahmeportionen ohne zusätzliche Kalendermahlzeiten, Wochenabweichungen und kompakter Planungsschreibvertrag. [Einrichtung und Grenzen](docs/SETUP_1.4.5.md), [Prüfbericht](docs/VALIDATION_1.4.5.md), [Release Notes](docs/RELEASE_1.4.5.md). Vor neuen Planungsaktionen die Standardwoche ausdrücklich neu konfigurieren; bestehende Yuvomi-Daten und Journale bleiben erhalten.
 
 Yuvomi 2.79.0 ist die einzige Quelle für Einkaufsnamen, Kategorien, Mengen und Status. Die Integration stellt weiterhin explizit freigegebene Werkzeuge über die native HA-LLM-Plattform bereit. Aufgaben und Kalender laufen unverändert über MCP. Keine Serveränderung, zusätzliche Datenbank oder Installation durch dieses Release.
 
 ## Installation über HACS
 
-Repository: [BugsDan/ha-yuvomi-mcp](https://github.com/BugsDan/ha-yuvomi-mcp). 1.4.2 ist die erste öffentliche Baseline; veröffentlichte Testbasis ist v1.4.4-rc3. Der lokale 1.4.5-Kandidat ist noch nicht über HACS verfügbar. Eigenständige Integration, kein offizielles Yuvomi- oder HA-Projekt.
+Repository: [BugsDan/ha-yuvomi-mcp](https://github.com/BugsDan/ha-yuvomi-mcp). 1.4.2 ist die erste öffentliche Baseline; 1.4.5 ist die aktuelle stabile Version. Eigenständige Integration, kein offizielles Yuvomi- oder HA-Projekt.
 
 Voraussetzungen: Home Assistant ab 2026.10.2, HACS und ein erreichbarer Yuvomi-Server 2.79.0 mit API-Token. Die getestete HA-API ist auf 2026.10.2 festgelegt; spätere HA-Versionen müssen ihre Kompatibilität in CI/Abnahme bestätigen.
 
