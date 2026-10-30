@@ -11,8 +11,17 @@ from zoneinfo import ZoneInfo
 from .journal import MAX_JOURNAL, JournalError, now
 from .meals_api import slot, snapshot
 from .menu_metadata import metadata, notes_block, scale
+from .planning_allocations import prepare_cooking
 from .planning_config import period
-from .planning_context import PLANNING_PROMPT, attendance, day_range, fail, fingerprint, portions
+from .planning_context import (
+    PLANNING_PROMPT,
+    apply_overrides,
+    attendance,
+    day_range,
+    fail,
+    fingerprint,
+    portions,
+)
 from .recipe_engine import Recipes, result
 from .recipe_views import planning_recipe
 from .shopping_api import ShoppingFailure
@@ -42,6 +51,11 @@ class MenuPlanning:
             pass
 
     def target(self, args, config):
+        if sum(k in args for k in ("date", "start_date", "period")) > 1:
+            fail(
+                "date_unclear",
+                "date, start_date und period schließen sich aus. Für aktuelle/nächste Periode nur period verwenden; den Aufruf korrigieren, nicht identisch wiederholen.",
+            )
         today = self.today() if self.today else datetime.now(ZoneInfo(config["timezone"])).date()
         if args.get("date"):
             first = last = date.fromisoformat(args["date"])
@@ -52,15 +66,51 @@ class MenuPlanning:
                 fail("date_unclear", "start_date muss zum konfigurierten Periodenanker passen.")
         else:
             first, last = period(config, today, args.get("period", "current"))
-        if sum(k in args for k in ("date", "start_date", "period")) > 1:
-            fail("date_unclear", "Genau einen Datumsbezug verwenden.")
         return first, last
 
     async def facts(self, config, start, end, actor):
-        if config["calendars"] and self.calendar_reader is None:
+        read_config = deepcopy(config)
+        if config.get("week"):
+            weekdays = {day.weekday() for day in day_range(start, end)}
+            read_config["calendars"] = {
+                key: rule
+                for key, rule in config["calendars"].items()
+                if any(
+                    rule["entity"] in config["week"][str(day)]["calendars"]
+                    and day in rule.get("days", range(7))
+                    for day in weekdays
+                )
+            }
+        if read_config["calendars"] and self.calendar_reader is None:
             fail("calendar_not_allowed", "Kalenderadapter nicht verfügbar.")
-        events = await self.calendar_reader(config, start, end, actor) if config["calendars"] else {}
+        events = (
+            await self.calendar_reader(read_config, start, end, actor) if read_config["calendars"] else {}
+        )
         return attendance(config, start, end, events)
+
+    async def context_facts(self, config, first, last, actor, args):
+        facts = await self.facts(config, first - timedelta(days=2), last + timedelta(days=2), actor)
+        apply_overrides(config, facts, args.get("overrides", []), first, last)
+        if config.get("week"):
+            for when, people in facts.items():
+                day = date.fromisoformat(when)
+                if first <= day <= last + timedelta(days=2) and day.weekday() in config["days"]:
+                    if day <= last and any(p.get("unclear") for p in people.values()):
+                        fail(
+                            "attendance_unclear",
+                            f"{when}: ungeklärte Anwesenheit; Standardannahme, Kalender oder ausdrückliche Abweichung angeben.",
+                        )
+                    if any(p["present"] and p["reheat"] for p in people.values()):
+                        fail(
+                            "attendance_unclear",
+                            f"{when}: dieselbe Person gleichzeitig frisch und vorbereitet.",
+                        )
+        return facts
+
+    async def members(self, config):
+        if config.get("week") and any(p.get("user_id") is not None for p in config["profiles"].values()):
+            return await self.api.members()
+        return {}
 
     async def run(self, tool, args, key, authorized, *, owner="", actor=None):
         try:
@@ -69,7 +119,20 @@ class MenuPlanning:
             if tool == "get_menu_plan":
                 config = self.store.data["config"]
                 first, last = self.target(args, config)
-                rows = await self.api.meals(first, last)
+                rows = await self.api.meals(first - timedelta(days=2), last)
+                prepared = [
+                    {
+                        "source_date": row["date"],
+                        "recipe_id": block.get("recipe_id"),
+                        "title": row["title"],
+                        **extra,
+                    }
+                    for row in rows
+                    if (block := metadata(row.get("notes")))
+                    for extra in block.get("extras", [])
+                    if str(first) <= extra["date"] <= str(last)
+                ]
+                rows = [r for r in rows if str(first) <= r["date"] <= str(last)]
                 self.allowed(authorized)
                 today = self.today() if self.today else datetime.now(ZoneInfo(config["timezone"])).date()
                 if not args.get("date") and args.get("detail", "brief") != "full":
@@ -78,14 +141,28 @@ class MenuPlanning:
                         for r in rows
                         if r["date"] in {today.isoformat(), (today + timedelta(days=1)).isoformat()}
                     ]
-                return result({"status": "read", "start": str(first), "end": str(last), "meals": rows})
+                    prepared = [
+                        e
+                        for e in prepared
+                        if e["date"] in {today.isoformat(), (today + timedelta(days=1)).isoformat()}
+                    ]
+                return result(
+                    {
+                        "status": "read",
+                        "start": str(first),
+                        "end": str(last),
+                        "meals": rows,
+                        "prepared_meals": prepared,
+                    }
+                )
             if tool == "get_menu_planning_context":
                 return await self.context(args, key, authorized, owner, actor)
             async with self.lock:
                 return await self.save(args, key, authorized, owner, actor)
         except (ShoppingFailure, JournalError) as error:
             return result(
-                code=error.code if isinstance(error, ShoppingFailure) else "storage_error", message=str(error)
+                data={"message": str(error), **getattr(error, "details", {})},
+                code=error.code if isinstance(error, ShoppingFailure) else "storage_error",
             )
         except (ValueError, KeyError, TypeError, ArithmeticError):
             return result(
@@ -105,22 +182,30 @@ class MenuPlanning:
         if not config["profiles"]:
             fail("planning_not_configured", "Zuerst Familienprofile in den Integrationsoptionen einrichten.")
         action = args["action"]
-        if action != "create_period" and "date" not in args:
-            fail("date_unclear", "Tagesänderung/Vorschlag braucht ein eindeutiges ISO-Datum.")
-        if action == "create_period" and "date" in args:
-            fail("date_unclear", "Wochenplanung braucht eine ganze konfigurierte Periode.")
+        if (
+            config.get("week")
+            and args.get("requested_recipe")
+            and action in {"create_period", "suggest_period"}
+        ):
+            fail("recipe_unclear", "Konkrete Rezeptwünsche für eine Woche mit Datum in overrides angeben.")
         first, last = self.target(args, config)
+        if action not in {"create_period", "suggest_period"} and "date" not in args:
+            fail("date_unclear", "Tagesänderung/Vorschlag braucht ein eindeutiges ISO-Datum.")
+        if action in {"create_period", "suggest_period"} and "date" in args:
+            fail("date_unclear", "Wochenplanung braucht eine ganze konfigurierte Periode.")
         period_start, period_end = period(config, first)
         prior_start = period_start - timedelta(days=config["length_days"])
         rows = await self.api.meals(
             prior_start - timedelta(days=2), max(period_end, last) + timedelta(days=2)
         )
-        candidates = deepcopy(await self.recipes.api.recipes())
+        all_recipes = deepcopy(await self.recipes.api.recipes())
+        candidates = deepcopy(all_recipes)
         if args.get("requested_recipe"):
             candidates = [r for r in candidates if r["title"] == args["requested_recipe"]]
             if len(candidates) != 1:
                 fail("recipe_unclear", "Exakter Rezeptname/Variante nicht eindeutig vorhanden.")
-        facts = await self.facts(config, first - timedelta(days=2), last + timedelta(days=2), actor)
+        facts = await self.context_facts(config, first, last, actor, args)
+        members = deepcopy(await self.members(config))
         ident = uuid4().hex
         public = {
             "context_id": ident,
@@ -129,6 +214,10 @@ class MenuPlanning:
             "end": str(last),
             "revision": revision,
             "prompt": PLANNING_PROMPT,
+            "validation_status": "context_only",
+            "write_permitted": action not in {"suggest_day", "suggest_period"},
+            "contract": "cooking_only" if config.get("week") else "legacy_slots",
+            "overrides": deepcopy(args.get("overrides", [])),
             "rules": config,
             "attendance": facts,
             "recipes": [planning_recipe(r) for r in candidates],
@@ -141,12 +230,37 @@ class MenuPlanning:
         public["free_slots"] = [
             {"date": str(d), "meal_type": config["meal_type"]}
             for d in day_range(first, last)
-            if d.weekday() in config["days"] and (str(d), config["meal_type"]) not in occupied_slots
+            if d.weekday() in config["days"]
+            and (str(d), config["meal_type"]) not in occupied_slots
+            and (not config.get("week") or any(p["present"] for p in facts[str(d)].values()))
         ]
         public["status"] = (
-            "already_planned" if action == "create_period" and not public["free_slots"] else "ready"
+            "already_planned"
+            if action in {"create_period", "suggest_period"} and not public["free_slots"]
+            else "ready"
         )
-        if action != "create_period":
+        if config.get("week"):
+            public["takeaway_needs"] = [
+                {
+                    "date": when,
+                    "profile_id": ident,
+                    "servings": person["portion"],
+                    "max_age": config["week"][str(date.fromisoformat(when).weekday())]["max_age"],
+                }
+                for when, people in facts.items()
+                if str(first) <= when <= str(last) and date.fromisoformat(when).weekday() in config["days"]
+                for ident, person in people.items()
+                if person["reheat"]
+            ]
+            claims = {
+                (e["date"], e["profile_id"])
+                for row in rows
+                if row["meal_type"] == config["meal_type"]
+                for e in (metadata(row.get("notes")) or {}).get("extras", [])
+            }
+            if any((need["date"], need["profile_id"]) not in claims for need in public["takeaway_needs"]):
+                public["status"] = "ready"
+        if action not in {"create_period", "suggest_period"}:
             public["related_meals"] = [
                 r
                 for r in rows
@@ -163,6 +277,8 @@ class MenuPlanning:
             "config": config,
             "rows": rows,
             "recipes": candidates,
+            "all_recipes": all_recipes,
+            "members": members,
             "facts": facts,
             "args": deepcopy(args),
             "first": first,
@@ -188,7 +304,11 @@ class MenuPlanning:
                     ids.add(ident)
         return sorted(ids)
 
-    def prepare(self, ctx, assignments):
+    def prepare(self, ctx, assignments, sources=None):
+        if ctx["config"].get("week"):
+            return prepare_cooking(ctx, assignments, sources or [])
+        if sources:
+            fail("invalid_plan", "Zuerst die neue Standardwoche konfigurieren.")
         config, facts = ctx["config"], ctx["facts"]
         recipes = {r["id"]: r for r in ctx["recipes"]}
         occupied = {slot(r) for r in ctx["rows"]}
@@ -200,14 +320,14 @@ class MenuPlanning:
             day = date.fromisoformat(a["date"])
             if not ctx["first"] <= day <= ctx["last"] or day.weekday() not in config["days"]:
                 fail("invalid_plan", "Tag außerhalb freigegebener Planungstage.")
-            if ctx["args"]["action"] == "create_period" and key in occupied:
+            if ctx["args"]["action"] in {"create_period", "suggest_period"} and key in occupied:
                 fail("occupied", "Bestehender Menüeintrag bleibt bei Erstplanung erhalten.")
             if a["recipe_id"] not in recipes:
                 fail("recipe_unclear", "Rezept gehört nicht zum gebundenen Kontext.")
             chosen[key] = a
         if ctx["args"]["action"] == "replace_day" and len(chosen) != 1:
             fail("invalid_plan", "Tagesänderung darf genau einen Slot ersetzen.")
-        if ctx["args"]["action"] == "create_period":
+        if ctx["args"]["action"] in {"create_period", "suggest_period"}:
             required = {
                 (str(d), config["meal_type"])
                 for d in day_range(ctx["first"], ctx["last"])
@@ -244,6 +364,14 @@ class MenuPlanning:
                     )
         bodies = []
         previous = set(ctx["public"]["previous_recipe_ids"])
+        used_recipes = {
+            r["recipe_id"]
+            for r in ctx["rows"]
+            if r.get("recipe_id")
+            and slot(r) not in chosen
+            and ctx["period_start"] <= date.fromisoformat(r["date"]) <= ctx["period_end"]
+            and (metadata(r.get("notes")) or {}).get("kind") != "reheat"
+        }
         extras_by_source = {}
         for key, a in chosen.items():
             extras = a.get("extra_servings", [])
@@ -283,6 +411,13 @@ class MenuPlanning:
             meta = (presented.get("menu_metadata") or {}).get("metadata", {})
             day = date.fromisoformat(key[0])
             kind = a["kind"]
+            if kind != "reheat":
+                if a["recipe_id"] in used_recipes - set(config["repeat_exceptions"]):
+                    fail(
+                        "repeat_forbidden",
+                        "Gericht innerhalb dieser Planungsperiode bereits vorgesehen; anderes Rezept wählen.",
+                    )
+                used_recipes.add(a["recipe_id"])
             if a["recipe_id"] in previous - set(config["repeat_exceptions"]):
                 fail("repeat_forbidden", "Rezept bereits in unmittelbar vorheriger Planungsperiode.")
             if kind == "rest" and (
@@ -366,13 +501,22 @@ class MenuPlanning:
                     recipe["ingredients"], count / Decimal(str(meta.get("basisportionen", 4)))
                 )
                 native_id, elapsed = a["recipe_id"], meta.get("zubereitungszeit_min")
+            disliked = set()
+            for reference in meta.get("mag_nicht", []):
+                matches = {
+                    ident
+                    for ident, profile in config["profiles"].items()
+                    if reference == ident or reference == profile["name"]
+                }
+                if len(matches) != 1:
+                    fail(
+                        "profile_unclear",
+                        "mag_nicht enthält eine unbekannte/mehrdeutige Profil-ID oder einen Anzeigenamen; Zuordnung in Yuvomi klären.",
+                    )
+                disliked |= matches
             for ident in recipients:
                 profile = config["profiles"][ident]
-                if (
-                    a["recipe_id"] in profile.get("dislikes", [])
-                    or profile["name"] in meta.get("mag_nicht", [])
-                    or ident in meta.get("mag_nicht", [])
-                ):
+                if a["recipe_id"] in profile.get("dislikes", []) or ident in disliked:
                     fail("disliked_recipe", "Gericht wird von einer betroffenen Person nicht akzeptiert.")
             limit = config["time_limits"].get(str(day.weekday()))
             if limit is not None and (elapsed is None or elapsed > limit):
@@ -424,10 +568,11 @@ class MenuPlanning:
         ctx = self.contexts.get(args["context_id"])
         if not ctx or ctx["owner"] != owner or ctx["expires"] <= self.clock():
             fail("context_stale", "Planungskontext abgelaufen oder nach Neustart nicht mehr vorhanden.")
-        if ctx["args"]["action"] == "suggest_day":
+        validating = args.get("validate_only", False)
+        if ctx["args"]["action"] in {"suggest_day", "suggest_period"} and not validating:
             fail("not_allowed", "Vorschlag darf nicht gespeichert werden.")
-        args_hash = fingerprint(args["assignments"])
-        if ctx.get("completed"):
+        args_hash = fingerprint([args["assignments"], args.get("reheat_sources", [])])
+        if ctx.get("completed") and not validating:
             if ctx["args_hash"] != args_hash:
                 fail(
                     "context_stale", "Bereits gespeicherter Kontext darf nicht anders wiederverwendet werden."
@@ -443,7 +588,7 @@ class MenuPlanning:
             fail("execution_unconfirmed", "Menüschreibausgang unklar; Ausführungen lesend prüfen.")
         if self.store.data["revision"] != ctx["public"]["revision"]:
             fail("context_stale", "Planungskonfiguration geändert.")
-        bodies = self.prepare(ctx, args["assignments"])
+        bodies = self.prepare(ctx, args["assignments"], args.get("reheat_sources"))
         intent = fingerprint([owner, ctx["args"], str(ctx["first"]), str(ctx["last"])])
         recent = [
             r
@@ -457,7 +602,7 @@ class MenuPlanning:
                 > datetime.now(timezone.utc) - timedelta(seconds=120)
             )
         ]
-        if recent:
+        if recent and not validating:
             prior = recent[-1]
             if prior["body"]["assignments"] != bodies:
                 fail(
@@ -473,14 +618,50 @@ class MenuPlanning:
         if fingerprint(fresh) != fingerprint(ctx["rows"]):
             fail("concurrent_change", "Menübestand wurde geändert; neuen Kontext lesen.")
         fresh_recipes = {r["id"]: r for r in await self.recipes.api.recipes()}
-        if any(fresh_recipes.get(r["id"]) != r for r in ctx["recipes"]):
+        if any(fresh_recipes.get(r["id"]) != r for r in ctx.get("all_recipes", ctx["recipes"])):
             fail("context_stale", "Rezeptdaten inzwischen geändert.")
-        facts = await self.facts(
-            ctx["config"], ctx["first"] - timedelta(days=2), ctx["last"] + timedelta(days=2), actor
-        )
+        facts = await self.context_facts(ctx["config"], ctx["first"], ctx["last"], actor, ctx["args"])
         if facts != ctx["facts"]:
             fail("attendance_unclear", "Anwesenheit inzwischen geändert.")
+        if await self.members(ctx["config"]) != ctx.get("members", {}):
+            fail("cook_unclear", "Yuvomi-Mitgliederliste geändert; neuen Kontext lesen.")
         self.allowed(authorized, writing=True)
+        if self.store.data["revision"] != ctx["public"]["revision"] or self.clock() >= ctx["expires"]:
+            fail("context_stale", "Planungskontext während der Prüfung geändert/abgelaufen; neu lesen.")
+        if validating:
+            preview = []
+            for body in bodies:
+                block = metadata(body["notes"])
+                preview.append(
+                    {
+                        "date": body["date"],
+                        "meal_type": body["meal_type"],
+                        "title": body["title"],
+                        **{k: block[k] for k in ("recipe_id", "kind", "servings_total", "extras")},
+                        **{
+                            k: block[k]
+                            for k in (
+                                "servings_now",
+                                "scale_factor",
+                                "basisportionen",
+                                "source_date",
+                                "recipients",
+                            )
+                            if k in block
+                        },
+                    }
+                )
+            return result(
+                {
+                    "status": "validated_preview",
+                    "validation_status": "validated",
+                    "context_id": args["context_id"],
+                    "saved": False,
+                    "write_permitted": ctx["args"]["action"] not in {"suggest_day", "suggest_period"},
+                    "meals": preview,
+                    "shopping_transferred": False,
+                }
+            )
         if not bodies:
             return result(
                 {"status": "already_planned", "message": "Alle Planungstage bereits belegt; nichts geändert."}

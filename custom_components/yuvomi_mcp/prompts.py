@@ -36,7 +36,17 @@ gesundheit 1–5 mit Begründung als KI-Vorschlag, mag_nicht, basisportionen. Un
 Resten ist ein normales Rezept ohne Vorratsberechnung. Kein automatischer Zutatenübertrag.
 """
 
-MENU_PROMPT = """Menüplanung nur ausdrücklich mit freigegebenen Menüwerkzeugen; der geladene Kontext enthält die Regeln.
+MENU_PROMPT = """Für konkrete Yuvomi-Menüplanung zuerst get_menu_planning_context aufrufen, auch bei natürlichen
+Wochenplanungsaufträgen; vorhandene Profile/Regeln lesen, bevor danach gefragt wird. Nur tatsächliche Rezept-IDs
+verwenden. Allgemeine Rezeptideen sind kein geprüfter Yuvomi-Plan. Ohne erfolgreichen Kontextabruf keine
+Planung als verifiziert darstellen. Für ganze Wochen ohne Speichern action=suggest_period verwenden;
+Vorschläge mit save_menu_plan(validate_only=true) prüfen. Nur dessen erfolgreiche Backend-Vorschau
+belegt die Regelprüfung und Portionssummen; Kontextabruf allein genügt nicht. Details stehen im Kontext.
+Ausdrücklich angeforderte Wochenplanung: create_period, danach direkt speichern, keine zusätzliche
+Bestätigungsrunde. „Noch nicht speichern“ hat Vorrang. Einzelnen freien Tag mit create_day planen;
+replace_day nur bei ausdrücklichem Änderungs-/Rezeptwunsch für diesen Tag, nie ungefragt überschreiben.
+Fehlt die Freigabe für Kontext oder Validierung, die Einschränkung melden statt einen geprüften Plan vorzutäuschen.
+Für reine Menüabfragen genügt get_menu_plan; dafür keinen umfangreichen Planungskontext laden.
 Ganze Wochen bewusst in separater Planungs-Conversation planen. Kein automatischer Einkaufs-/Vorratsübertrag.
 """
 

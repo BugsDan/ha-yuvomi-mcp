@@ -1,0 +1,27 @@
+{
+  "server_version": "2.79.0",
+  "commit": "a6812d433fc25a0f8bf1389542e68111f9169a82",
+  "method": "Read-only comparison of local unchanged files with git objects; no installed server access",
+  "files": {
+    "server/routes/meals.js": {
+      "sha256_git_blob": "276d55a99645226f1f2499a8b51b3abaa839d7a40fbd4332233da9d35a64ddcc",
+      "url": "https://github.com/ulsklyc/yuvomi/blob/a6812d433fc25a0f8bf1389542e68111f9169a82/server/routes/meals.js"
+    },
+    "server/routes/family.js": {
+      "sha256_git_blob": "3cf3732be2f06d8b0cf0fd72edab18d7ced79a3616b1760b76dc3244c743a71a",
+      "url": "https://github.com/ulsklyc/yuvomi/blob/a6812d433fc25a0f8bf1389542e68111f9169a82/server/routes/family.js"
+    },
+    "server/services/meal-cook.js": {
+      "sha256_git_blob": "8fee8ab41179845eb520b106391b26b52a505235876fe4685b7a5d3dc122d1fe",
+      "url": "https://github.com/ulsklyc/yuvomi/blob/a6812d433fc25a0f8bf1389542e68111f9169a82/server/services/meal-cook.js"
+    },
+    "server/scopes.js": {
+      "sha256_git_blob": "60c7a90d7ca354659953bed00bfa0f86be0021e2681b1e8c0ce50a7c5e2d1f6b",
+      "url": "https://github.com/ulsklyc/yuvomi/blob/a6812d433fc25a0f8bf1389542e68111f9169a82/server/scopes.js"
+    },
+    "public/pages/meals.js": {
+      "sha256_git_blob": "257eb7cc591c650aea48a3e9906ba96c7aeecc864a591e565418ad87c9eaca77",
+      "url": "https://github.com/ulsklyc/yuvomi/blob/a6812d433fc25a0f8bf1389542e68111f9169a82/public/pages/meals.js"
+    }
+  }
+}

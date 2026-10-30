@@ -98,28 +98,110 @@
         }
       },
       "planning": {
-        "title": "Menüplanung",
-        "description": "Vier ist die Rezeptbasis, nicht die Mindestmenge einer Mahlzeit. Profile enthalten name, days, portion, reheat_days, dislikes und preferences. Tage verwenden 0=Montag bis 6=Sonntag. Zeitlimits umfassen Koch-, Gar-, Back- und Wartezeit. Kalender zunächst leer lassen; nur ausdrücklich ausgewählte Entities in Regeln verwenden. Die strukturierten Felder sind ohne YAML-Dateien editierbar und werden streng validiert. Vollständige Beispiele: docs/SETUP_1.4.4.md.",
+        "title": "Menüplanung 1.4.5",
+        "description": "Profile, Standardwoche und ausdrücklich ausgewählte Kalender bearbeiten. Änderungen zunächst als Entwurf; erst Speichern übernimmt sie. Alte Planungskonfiguration wird nicht migriert: beim ersten Öffnen neue Standardwerte prüfen. Yuvomi-Menüs, Rezepte und Journal bleiben unverändert. Daniel: ungeklärte Anwesenheit bewusst klären.",
+        "menu_options": {
+          "planning_general": "Periode und Rezeptregeln",
+          "planning_profiles": "Familienprofile",
+          "planning_week": "Standardwoche je Wochentag",
+          "planning_calendars": "Kalenderinterpretation",
+          "planning_finish": "Entwurf speichern"
+        }
+      },
+      "planning_general": {
+        "title": "Periode und Rezeptregeln",
+        "description": "Periode frei wählbar. Wiederholungsausnahmen nur für gewählte Resten-/Notfallmenüs. Zubereitungszeit umfasst die gesamte Zeit bis servierfertig.\n\n{validation_error}",
         "data": {
           "timezone": "Zeitzone",
-          "anchor_date": "Ankerdatum der Planungsperiode (YYYY-MM-DD)",
-          "meal_time": "Mahlzeitzeit (HH:MM)",
-          "meal_type": "Mahlzeittyp (lunch/breakfast/dinner/snack)",
-          "length_days": "Periodenlänge in Tagen (1–31)",
-          "shopping_day": "Einkaufstag (0=Montag bis 6=Sonntag)",
-          "max_reheat_days": "Maximaler Aufwärmabstand in Kalendertagen",
-          "profiles": "Familienprofile nach stabiler Profil-ID",
-          "calendars": "Kalenderregeln nach Regel-ID",
-          "time_limits": "Gesamte Zeitlimits je Wochentag (0–6)",
-          "calendar_entities": "Ausdrücklich erlaubte Kalender",
-          "advanced": "Planungstage, Resten-/Notfall-IDs und Aufwärmzeit"
+          "anchor_date": "Ankerdatum (YYYY-MM-DD)",
+          "meal_time": "Essenszeit (HH:MM)",
+          "length_days": "Tage je Planungsperiode",
+          "shopping_day": "Einkaufstag",
+          "meal_type": "Mahlzeittyp",
+          "rest_recipe_id": "Resten-Rezept",
+          "rest_day": "Fester Restentag",
+          "rest_excluded_days": "Resten ausschliessen an",
+          "emergency_recipe_ids": "Notfallmenüs",
+          "repeat_exceptions": "Wiederholungsausnahmen"
+        }
+      },
+      "planning_profiles": {
+        "title": "Familienprofile",
+        "description": "Person auswählen oder ergänzen. Technische Identitäten bleiben bei Namensänderungen erhalten.\n\n{validation_error}",
+        "data": {
+          "person": "Person auswählen"
+        }
+      },
+      "planning_profile": {
+        "title": "Person bearbeiten",
+        "description": "Vorlieben/Zutatenhinweise gehen an das Modell; dies ist keine Allergensicherheitsprüfung. Die Yuvomi-Zuordnung benötigt family:read. Keine Benutzer-ID wird erfunden. Bei ungeklärter Anwesenheit wird gezielt nachgefragt.\n\n{validation_error}",
+        "data": {
+          "name": "Anzeigename",
+          "preferences": "Vorlieben",
+          "avoid": "Nicht gemochte Gerichte/Zutaten",
+          "diet": "Weitere Ernährungspräferenzen",
+          "portion": "Portionen pro Mahlzeit",
+          "user_id": "Yuvomi-Mitglied (Kochzuordnung)",
+          "fallback": "Anwesenheit ausserhalb der festen Frisch-/Mitnahmeregeln",
+          "dislikes": "Nicht gemochte gespeicherte Rezepte"
+        }
+      },
+      "planning_week": {
+        "title": "Standardwoche",
+        "description": "Jeden Wochentag separat bearbeiten; Samstag/Sonntag sind zunächst deaktiviert.\n\n{validation_error}",
+        "data": {
+          "day": "Wochentag auswählen"
+        }
+      },
+      "planning_day": {
+        "title": "Wochentag bearbeiten",
+        "description": "Vorbereitet bedeutet Bedarf am Zieltag: die Portion wird einem geeigneten früheren Kochtag zugerechnet, ohne separaten Menüeintrag. Pro Person frisch ODER vorbereitet wählen. Kochperson im Profil mit einem echten Yuvomi-Mitglied verknüpfen. Für ausgewählte Kalender zusätzlich Interpretationsregeln einrichten.\n\n{validation_error}",
+        "data": {
+          "enabled": "An diesem Tag automatisch planen",
+          "fresh": "Wer isst frisch?",
+          "prepared": "Wer benötigt vorbereitetes Essen?",
+          "max_age": "Maximales Alter in Kalendertagen",
+          "limit_enabled": "Kochzeit begrenzen",
+          "max_minutes": "Maximale gesamte Zubereitungszeit (Minuten)",
+          "cook": "Standardkochperson",
+          "calendars": "Für diesen Wochentag ausgewählte Kalender"
+        }
+      },
+      "planning_calendars": {
+        "title": "Kalenderregeln",
+        "description": "Kalenderauswahl allein interpretiert keine Ereignisse. Regeln wirken nur an Tagen, an denen der Kalender ausdrücklich ausgewählt wurde.\n\n{validation_error}",
+        "data": {
+          "rule": "Regel auswählen"
+        }
+      },
+      "planning_calendar": {
+        "title": "Kalenderregel bearbeiten",
+        "description": "exact = ganzer Titel, prefix = Titelanfang, contains = enthaltener Text; ohne Beachtung der Gross-/Kleinschreibung. Sonst zählt die Essenszeit. Hohe Priorität gewinnt, gleichrangige Widersprüche blockieren. Explizite Wochenabweichungen haben Vorrang. Kalenderrechte werden geprüft; Datenfehler werden nicht als Anwesenheit geraten.\n\n{validation_error}",
+        "data": {
+          "entity": "Kalender",
+          "profiles": "Betroffene Personen",
+          "match": "Ereignistitel",
+          "match_mode": "Vergleich (exact/prefix/contains)",
+          "effect": "Wirkung (present/absent/reheat/no_reheat)",
+          "priority": "Priorität",
+          "required": "Fehlende Daten blockieren Planung",
+          "whole_day": "Jede Überschneidung am Tag berücksichtigen",
+          "delete": "Diese Regel entfernen"
+        }
+      },
+      "planning_finish": {
+        "title": "Entwurf speichern",
+        "description": "Bei Fehlern zum erhaltenen Entwurf zurückkehren und korrigieren. Änderungen betreffen nur künftige Planungskontexte, niemals bestehende Yuvomi-Menüs.\n\n{validation_error}",
+        "data": {
+          "return_to_menu": "Zum Entwurf zurückkehren"
         }
       }
     },
     "error": {
       "invalid_tools": "Nur aktuell erkannte Werkzeuge auswählen.",
       "invalid_exposure": "assist oder dedicated wählen.",
-      "invalid_planning": "Konfiguration ungültig: Datumsanker, Profile, ausgewählte Kalender, Zeiten und Ausnahmen prüfen."
+      "invalid_planning": "Ungültige Eingabe; die Details oberhalb des Formulars beachten.",
+      "planning_storage_error": "Speichern fehlgeschlagen. Eingaben bleiben erhalten; Integration und Sicherung prüfen."
     },
     "abort": {
       "refresh_failed": "Werkzeuge konnten nicht aktualisiert werden. Verbindung, Token oder Schema prüfen.",

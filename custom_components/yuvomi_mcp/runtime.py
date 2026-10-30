@@ -21,6 +21,7 @@ from jsonschema.exceptions import SchemaError, ValidationError
 from .client import AuthenticationError, MCPClient, MCPError, RemoteTool
 from .const import KNOWN_TOOLS, MENU_TOOLS, READ_TOOLS, RECIPE_READS, RECIPE_WRITES
 from .descriptions import optimize
+from .journal import JournalError
 from .menu_tools import menu_tools
 from .recipe_engine import Recipes
 from .recipes import RecipeAPI, recipe_tools
@@ -184,7 +185,18 @@ class Runtime:
             if len(serialized) > 65536:
                 return failure("Die Werkzeugparameter sind zu umfangreich.", "invalid_arguments")
             self.validators[name].validate(arguments)
-        except (ValidationError, ValueError, TypeError, RecursionError):
+        except ValidationError as error:
+            if name in MENU_TOOLS:
+                path = ".".join(map(str, error.absolute_path)) or "parameters"
+                return failure(
+                    f"{path}: Schema-Regel {error.validator} verletzt. Werkzeugvertrag beachten und diesen Aufruf korrigieren.",
+                    "invalid_arguments",
+                )
+            return failure(
+                "Die Parameter entsprechen nicht dem Yuvomi-Schema. Fehlende oder unklare Angaben bitte erfragen.",
+                "invalid_arguments",
+            )
+        except (ValueError, TypeError, RecursionError):
             return failure(
                 "Die Parameter entsprechen nicht dem Yuvomi-Schema. Fehlende oder unklare Angaben bitte erfragen.",
                 "invalid_arguments",
@@ -193,6 +205,7 @@ class Runtime:
             # Reference-resolution errors must also never expose remote schemas/data.
             return failure("Das Yuvomi-Schema kann nicht sicher validiert werden.", "invalid_schema")
         fingerprint = sha256(f"{owner}\0{name}\0{serialized}".encode()).hexdigest()
+        validation_only = name == "save_menu_plan" and arguments.get("validate_only") is True
         # HA context identifies the request/turn; absent context falls back to call ID.
         key = sha256(f"{scope or call_id}\0{fingerprint}".encode()).hexdigest()
         self._prune()
@@ -205,7 +218,7 @@ class Runtime:
                 if name not in self.enabled():
                     return failure("Dieses Yuvomi-Werkzeug ist nicht mehr freigegeben.", "not_allowed")
                 self._prune()
-                if name not in READ_TOOLS and key in self._cache:
+                if name not in READ_TOOLS and not validation_only and key in self._cache:
                     cached = deepcopy(self._cache[key][1])
                     if name == "save_menu_plan":
                         cached["replayed"] = True
@@ -234,6 +247,21 @@ class Runtime:
                     if name in MENU_TOOLS:
                         if self.planning is None:
                             return failure("Menüplanung nicht verfügbar.", "storage_unavailable")
+                        if name != "get_menu_plan":
+                            if self.planning.store is None:
+                                return failure("Planungsspeicher nicht verfügbar.", "storage_unavailable")
+                            try:
+                                await self.planning.store.load()
+                            except JournalError:
+                                return failure(
+                                    "Planungsspeicher nicht sicher lesbar; keine Planung ausführen.",
+                                    "storage_error",
+                                )
+                            if not self.planning.store.data["config"].get("week"):
+                                return failure(
+                                    "Menüplanung 1.4.5 zuerst über die Integrationsoptionen neu einrichten. Alte Menüeinträge und Ausführungsjournale bleiben erhalten.",
+                                    "planning_not_configured",
+                                )
                         result = await self.planning.run(
                             name, arguments, key, lambda: name in self.enabled(), owner=owner, actor=actor
                         )
@@ -297,12 +325,15 @@ class Runtime:
                         )
                     )
                 except asyncio.CancelledError:
-                    self._remember(
-                        key,
-                        failure("Anfrage abgebrochen; Ausführung in Yuvomi prüfen.", "execution_unconfirmed"),
-                    )
+                    if not validation_only:
+                        self._remember(
+                            key,
+                            failure(
+                                "Anfrage abgebrochen; Ausführung in Yuvomi prüfen.", "execution_unconfirmed"
+                            ),
+                        )
                     raise
-                if name not in READ_TOOLS:
+                if name not in READ_TOOLS and not validation_only:
                     self._remember(key, result)
                 return deepcopy(result)
         finally:

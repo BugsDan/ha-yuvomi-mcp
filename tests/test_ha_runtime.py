@@ -262,6 +262,99 @@ async def test_real_recipe_api_exposes_compact_pages_and_single_full_title_read(
         await runner.cleanup()
 
 
+async def test_real_planning_form_retains_rejected_values_and_saves_correction(real_ha):
+    from copy import deepcopy
+    from types import SimpleNamespace
+
+    from homeassistant import config_entries
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.yuvomi_mcp.planning_form import form_values
+    from custom_components.yuvomi_mcp.planning_ui import PlanningOptions
+
+    config_entry = entry("http://host/mcp")
+    store = planning_store(real_ha, config_entry)
+    await store.load()
+    await store.update({**DEFAULTS, "profiles": {"kind_1": {"name": "Kind 1", "days": [0]}}})
+    saved = deepcopy(store.data)
+    runtime = SimpleNamespace(planning=SimpleNamespace(store=store, contexts={"old": "snapshot"}))
+
+    class FormFlow(PlanningOptions, config_entries.OptionsFlow):
+        def _runtime(self):
+            return runtime
+
+    flow = FormFlow()
+    flow.hass, flow.handler, flow.flow_id = real_ha, config_entry.entry_id, "planning-form-test"
+    values = form_values(store.data["config"])
+    values.update(
+        profiles={"Kind 1": {"name": "Kind 1", "days": [0], "portion": 0.5}},
+        length_days=14,
+        time_limits={"0": 30},
+        calendar_entities=["calendar.school"],
+    )
+    values["advanced"]["days"] = [0, 1, 4]
+    rejected = await flow.async_step_planning(values)
+    assert rejected["errors"] == {"profiles": "invalid_planning"}
+    assert "Kind 1" in rejected["description_placeholders"]["validation_error"]
+    assert {key.schema: key.default() for key in rejected["data_schema"].schema} == values
+    assert store.data == saved and runtime.planning.contexts == {"old": "snapshot"}
+    values["profiles"] = {"kind_1": values["profiles"]["Kind 1"]}
+    dr.async_setup(real_ha)
+    await dr.async_load(real_ha)
+    await er.async_load(real_ha)
+    accepted = await flow.async_step_planning(values)
+    assert accepted["reason"] == "planning_saved"
+    assert store.data["config"]["profiles"]["kind_1"]["portion"] == 0.5
+    assert not runtime.planning.contexts
+    restored = planning_store(real_ha, config_entry)
+    await restored.load()
+    assert restored.data == store.data
+
+
+async def test_real_menu_schema_supports_write_bound_period_preview(real_ha):
+    from test_planning_cooking import cooking, settings
+
+    from custom_components.yuvomi_mcp.const import MENU_TOOLS
+
+    config = settings()
+    config["length_days"] = 1
+    planner, remote, _, journal = await cooking(config)
+    async with aiohttp.ClientSession() as session:
+        state = Runtime(
+            MCPClient(session, "http://host/mcp", "local-test-token"), {}, lambda: set(MENU_TOOLS)
+        )
+        state.exposure = lambda: "dedicated"
+        state.planning = planner
+        try:
+            api = await YuvomiAPI(real_ha, entry("http://host/mcp"), state).async_get_api_instance(context())
+            tools = {tool.remote_name: tool for tool in api.tools}
+            fetched = await tools["get_menu_planning_context"].async_call(
+                real_ha,
+                llm.ToolInput(
+                    tool_name=tools["get_menu_planning_context"].name, tool_args={"action": "suggest_period"}
+                ),
+                context(),
+            )
+            assert not fetched.error
+            checked = await tools["save_menu_plan"].async_call(
+                real_ha,
+                llm.ToolInput(
+                    tool_name=tools["save_menu_plan"].name,
+                    tool_args={
+                        "context_id": fetched.data["data"]["context_id"],
+                        "validate_only": True,
+                        "assignments": [{"date": "2026-10-26", "recipe_id": 1, "kind": "cook"}],
+                    },
+                ),
+                context(),
+            )
+            assert not checked.error and checked.data["data"]["status"] == "validated_preview"
+            assert not checked.data["data"]["saved"] and not remote.writes and not journal.data["journal"]
+        finally:
+            await state.close()
+
+
 async def test_real_atomic_ha_store_restores_config_and_unresolved_journal(real_ha, mcp_runtime):
     _, _, _, _, url = mcp_runtime
     old_entry = entry(url)
@@ -291,6 +384,65 @@ async def test_real_atomic_ha_store_restores_config_and_unresolved_journal(real_
     assert restored_journal.data["journal"]["pending"]["state"] == "unknown"
     assert list(Path(real_ha.config.config_dir).joinpath(".storage").glob("yuvomi_mcp*"))
     assert dict(old_entry.options) == {CONF_TOOLS: ["list_tasks"]}
+
+
+async def test_real_weekly_selectors_preserve_errors_and_save_atomic_draft(real_ha):
+    from copy import deepcopy
+
+    from homeassistant import config_entries
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from test_planning_cooking import cooking, settings
+
+    from custom_components.yuvomi_mcp.planning_ui import PlanningOptions
+
+    config_entry = entry("http://host/mcp")
+    store = planning_store(real_ha, config_entry)
+    await store.load()
+    await store.update(settings())
+    original = deepcopy(store.data)
+    planner, _, _, journal = await cooking()
+    planner.store = store
+    state = type("State", (), {"planning": planner})()
+
+    class Flow(PlanningOptions, config_entries.OptionsFlow):
+        def _runtime(self):
+            return state
+
+    flow = Flow()
+    flow.hass, flow.handler, flow.flow_id = real_ha, config_entry.entry_id, "weekly-wizard"
+    dr.async_setup(real_ha)
+    await dr.async_load(real_ha)
+    await er.async_load(real_ha)
+    menu = await flow.async_step_planning()
+    assert menu["type"] == "menu"
+    profile = await flow.async_step_planning_profiles({"person": "member_02"})
+    values = {key.schema: key.default() for key in profile["data_schema"].schema}
+    assert not any(isinstance(s, selector.ObjectSelector) for s in profile["data_schema"].schema.values())
+    values["name"] = ""
+    rejected = await flow.async_step_planning_profile(values)
+    assert rejected["errors"] == {"name": "invalid_planning"}
+    assert {key.schema: key.default() for key in rejected["data_schema"].schema}["name"] == ""
+    assert store.data == original
+    values["name"] = "Cornelia geändert"
+    assert (await flow.async_step_planning_profile(values))["type"] == "menu"
+    day = await flow.async_step_planning_week({"day": "0"})
+    values = {key.schema: key.default() for key in day["data_schema"].schema}
+    values["max_age"] = 3
+    rejected = await flow.async_step_planning_day(values)
+    assert rejected["errors"] == {"max_age": "invalid_planning"}
+    assert {key.schema: key.default() for key in rejected["data_schema"].schema}["max_age"] == 3
+    values.update(max_age=1.0, max_minutes=70.0)
+    assert (await flow.async_step_planning_day(values))["type"] == "menu"
+    assert store.data == original
+    assert not journal.data["journal"]
+    saved = await flow.async_step_planning_finish()
+    assert saved["reason"] == "planning_saved"
+    assert store.data["config"]["week"]["0"]["max_minutes"] == 70
+    assert store.data["config"]["profiles"]["member_02"]["name"] == "Cornelia geändert"
+    restored = planning_store(real_ha, config_entry)
+    await restored.load()
+    assert restored.data == store.data and not planner.contexts
 
 
 async def test_real_calendar_service_enforces_user_permissions_and_exact_allowlist(real_ha):

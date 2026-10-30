@@ -21,6 +21,24 @@ def snapshot(row):
 
 
 class MealAPI(ShoppingAPI):
+    async def members(self):
+        """Read household identities; never accept an LLM-supplied user directory or URL."""
+        response = await self._request("GET", "/api/v1/family/members")
+        rows = response.get("data")
+        if not isinstance(rows, list):
+            raise ShoppingFailure("invalid_response", "Yuvomi-Mitgliederliste unvollständig.")
+        result = {}
+        for row in rows:
+            try:
+                ident = positive_id(row["id"])
+                name = row["display_name"]
+                if not isinstance(name, str) or not name.strip() or ident in result:
+                    raise ValueError
+                result[ident] = {"id": ident, "name": name}
+            except (KeyError, TypeError, ValueError):
+                raise ShoppingFailure("invalid_response", "Yuvomi-Mitgliederidentität ungültig.") from None
+        return result
+
     @staticmethod
     def validate(row):
         try:

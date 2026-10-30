@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import re
 from copy import deepcopy
 from datetime import date, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -29,6 +30,10 @@ PROFILE = {
         "reheat_days": DAYS,
         "dislikes": IDS,
         "preferences": {"type": "string", "maxLength": 1000},
+        "avoid": {"type": "string", "maxLength": 1000},
+        "diet": {"type": "string", "maxLength": 1000},
+        "user_id": {"type": ["integer", "null"], "minimum": 1},
+        "fallback": {"enum": ["present", "absent", "unknown"]},
     },
 }
 CALENDAR = {
@@ -45,6 +50,7 @@ CALENDAR = {
         "priority": {"type": "integer", "minimum": 0, "maximum": 100},
         "required": {"type": "boolean"},
         "whole_day": {"type": "boolean"},
+        "days": DAYS,
     },
 }
 DEFAULTS = {
@@ -66,6 +72,20 @@ DEFAULTS = {
     "emergency_recipe_ids": [],
     "repeat_exceptions": [],
     "max_reheat_days": 2,
+    "week": {},
+}
+WEEKDAY = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["fresh", "prepared", "max_age", "max_minutes", "cook", "calendars"],
+    "properties": {
+        "fresh": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
+        "prepared": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
+        "max_age": {"type": "integer", "minimum": 1, "maximum": 2},
+        "max_minutes": {"type": ["integer", "null"], "minimum": 0, "maximum": 1440},
+        "cook": {"type": ["string", "null"]},
+        "calendars": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
+    },
 }
 SCHEMA = {
     "type": "object",
@@ -104,35 +124,125 @@ SCHEMA = {
         "emergency_recipe_ids": IDS,
         "repeat_exceptions": IDS,
         "max_reheat_days": {"type": "integer", "minimum": 1, "maximum": 2},
+        "week": {"type": "object", "propertyNames": {"pattern": "^[0-6]$"}, "additionalProperties": WEEKDAY},
     },
 }
 
 
+class PlanningConfigError(ShoppingFailure):
+    def __init__(self, field, message):
+        super().__init__("invalid_planning_config", message)
+        self.field = field
+
+
 def validate_config(value):
+    # Read old settings without altering their stored representation or touching journals.
+    # The options wizard explicitly replaces them with a new weekly draft on save.
+    if isinstance(value, dict) and "week" not in value:
+        value = {**value, "week": {}}
+    if isinstance(value, dict) and isinstance(value.get("profiles"), dict):
+        invalid = [key for key in value["profiles"] if not re.fullmatch(r"[a-z][a-z0-9_]{0,31}", str(key))]
+        if invalid:
+            labels = json.dumps([str(key)[:60] for key in invalid[:5]], ensure_ascii=False)
+            raise PlanningConfigError(
+                "profiles",
+                f"Ungültige Profil-IDs: {labels}. Erlaubt: [a-z][a-z0-9_]{{0,31}}, z.B. kind_1; Anzeigename separat Kind 1.",
+            )
     try:
         Draft202012Validator(SCHEMA).validate(value)
+    except ValidationError as error:
+        path = list(error.absolute_path)
+        field = str(path[0]) if path else "base"
+        raise PlanningConfigError(field, ".".join(map(str, path)) + ": " + error.message[:180]) from None
+    try:
         ZoneInfo(value["timezone"])
+    except (ValueError, ZoneInfoNotFoundError):
+        raise PlanningConfigError(
+            "timezone", "timezone: gültige IANA-Zeitzone angeben, z.B. Europe/Zurich."
+        ) from None
+    try:
         date.fromisoformat(value["anchor_date"])
-        if not value["days"] or value["rest_day"] in value["rest_excluded_days"]:
-            raise ValueError
-        if value["rest_day"] is not None and value["rest_recipe_id"] is None:
-            raise ValueError
-        permitted = set(value["emergency_recipe_ids"]) | {value["rest_recipe_id"]}
-        if set(value["repeat_exceptions"]) - permitted:
-            raise ValueError
-        for rule in value["calendars"].values():
-            if (
-                set(rule["profiles"]) - value["profiles"].keys()
-                or rule["entity"] not in value["calendar_entities"]
-            ):
-                raise ValueError
+    except ValueError:
+        raise PlanningConfigError("anchor_date", "anchor_date: gültiges Datum YYYY-MM-DD angeben.") from None
+    if not value["days"]:
+        raise PlanningConfigError(
+            "days", "days: mindestens einen Planungstag wählen (0=Montag bis 6=Sonntag)."
+        )
+    if value["rest_day"] in value["rest_excluded_days"]:
+        raise PlanningConfigError("rest_day", "rest_day darf nicht in rest_excluded_days liegen.")
+    if value["rest_day"] is not None and value["rest_recipe_id"] is None:
+        raise PlanningConfigError("rest_recipe_id", "Ein fester Restentag benötigt rest_recipe_id.")
+    permitted = set(value["emergency_recipe_ids"]) | {value["rest_recipe_id"]}
+    if set(value["repeat_exceptions"]) - permitted:
+        raise PlanningConfigError(
+            "repeat_exceptions", "repeat_exceptions: nur konfigurierte Resten-/Notfall-Rezept-IDs zulässig."
+        )
+    for ident, rule in value["calendars"].items():
+        if set(rule["profiles"]) - value["profiles"].keys():
+            raise PlanningConfigError(
+                "calendars", f"Kalenderregel {str(ident)[:60]}: unbekannte Profil-ID in profiles."
+            )
+        if rule["entity"] not in value["calendar_entities"]:
+            raise PlanningConfigError(
+                "calendar_entities",
+                f"Kalenderregel {str(ident)[:60]}: Entity zuerst ausdrücklich in calendar_entities auswählen.",
+            )
+    if value["week"] and set(value["week"]) != set(map(str, range(7))):
+        raise PlanningConfigError("week", "Standardwoche muss alle sieben Wochentage enthalten.")
+    for day, rule in value["week"].items():
+        people = set(rule["fresh"]) | set(rule["prepared"]) | ({rule["cook"]} if rule["cook"] else set())
+        if people - value["profiles"].keys():
+            raise PlanningConfigError("week", f"Wochentag {day}: unbekannte Person.")
+        if set(rule["calendars"]) - set(value["calendar_entities"]):
+            raise PlanningConfigError("week", f"Wochentag {day}: Kalender nicht freigegeben.")
+        if set(rule["fresh"]) & set(rule["prepared"]):
+            raise PlanningConfigError("week", f"Wochentag {day}: frisch und vorbereitet für dieselbe Person.")
+    try:
         json.dumps(value, allow_nan=False)
-    except (ValidationError, ValueError, TypeError, ZoneInfoNotFoundError):
-        raise ShoppingFailure(
-            "invalid_planning_config",
-            "Planungskonfiguration ungültig: Tage, Profile, Kalender, Zeiten und Ausnahmen prüfen.",
+    except (ValueError, TypeError):
+        raise PlanningConfigError(
+            "base", "Nur endliche JSON-Werte in der Planungskonfiguration verwenden."
         ) from None
     return deepcopy(value)
+
+
+def family_defaults():
+    """Editable initial draft; stable IDs are independent of display names and Yuvomi accounts."""
+    value = deepcopy(DEFAULTS)
+    value["profiles"] = {
+        f"member_{i:02}": {
+            "name": name,
+            "days": [],
+            "portion": 1,
+            "preferences": "",
+            "avoid": "",
+            "diet": "",
+            "user_id": None,
+            "fallback": "unknown" if i == 1 else "absent",
+        }
+        for i, name in enumerate(("Daniel", "Cornelia", "Aaron", "Aliyah"), 1)
+    }
+    fresh = [
+        ["member_02"],
+        ["member_02", "member_04"],
+        ["member_02", "member_03", "member_04"],
+        ["member_02"],
+        ["member_02", "member_04"],
+        [],
+        [],
+    ]
+    value["week"] = {
+        str(d): {
+            "fresh": fresh[d],
+            "prepared": ["member_03"] if d == 1 else ["member_03", "member_04"] if d == 3 else [],
+            "max_age": 1 if d == 1 else 2,
+            "max_minutes": [75, 60, 40, 60, 25, None, None][d],
+            "cook": "member_02" if d < 5 else None,
+            "calendars": [],
+        }
+        for d in range(7)
+    }
+    return value
 
 
 def period(config, reference, which="current"):

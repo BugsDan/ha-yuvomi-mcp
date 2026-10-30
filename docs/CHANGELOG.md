@@ -1,5 +1,24 @@
 # Änderungen
 
+## 1.4.5 – lokaler Entwicklungskandidat
+
+- Konfiguration über auswählbare Profile, Wochentage, Kalender und reale Yuvomi-Kochpersonen; keine JSON-Kenntnisse erforderlich.
+- Kochtage statt Aufwärmkalendereinträge; eindeutige Mitnahmeportionen automatisch am Quellgericht berechnet.
+- Kompakte Datum-/Rezeptzuweisung, optionale Quellenauswahl, periodengebundene Wochenabweichungen und Prüfmodus.
+- Explizite Tagesrezepte dürfen Geschmacks-, Zeit- und Wiederholungsregeln übersteuern; Abhängigkeiten und technische Sicherheit bleiben geschützt.
+- Zutaten einmal skalieren; Portions-/Faktorhinweise in Mahlzeitnamen und strukturierten Notizen. Originalrezepte bleiben unverändert.
+- Öffentliche Planung bis zur Einrichtung der neuen Standardwoche gesperrt; keine automatische Konfigurationsmigration, keine Änderung alter Yuvomi-Einträge oder Journale.
+- Neue Regressionen für Quellen, Anwesenheit, Tagesänderungen, Timeout/Neustart und HA-Optionsflow. Keine Veröffentlichung oder produktive Installation.
+
+
+## Lokal nach 1.4.4-rc3 – Planungszuverlässigkeit, unveröffentlicht
+
+- Schreibgesperrter Wochenvorschlag mit action=suggest_period und reine Backend-Vorschau über das bestehende save_menu_plan(validate_only=true); gleiche harten Prüfungen und berechnete Portionssummen, kein POST oder neuer Journaleintrag.
+- Klarere zentrale Planungsanweisungen: tatsächlichen Kontext zuerst lesen, keine erfundenen Rezepte/Prüfbehauptungen, Anwesenheit und Aufwärmbedarf trennen, Datumsfehler korrigieren.
+- Wiederholte Kochtage innerhalb einer Periode und unklare mag_nicht-Profilbezüge werden abgewiesen; vorhandene Ausnahmen bleiben nutzbar.
+- Optionsformular erhält fehlerhafte Eingaben und zeigt konkrete feldbezogene Diagnosen. Speicher-/Konfigurationsformat bleibt unverändert. Bewertung weiterer GUI-Schritte und Grenzen: [PLANNING_RELIABILITY.md](PLANNING_RELIABILITY.md).
+- Kein Commit, Push, RC4, Release oder produktive Aktivierung ohne gesonderte Freigabe.
+
 ## 1.4.4-rc3 – kompakte Rezeptabfragen
 
 - `list_recipes` standardmäßig kompakt, mit limit/offset, exaktem title-Filter und optionalen strukturierten Metadaten. Vollständige Rezeptseiten bleiben ausdrücklich über detail=full verfügbar; get_recipe liest ein vollständiges Rezept nach ID oder exaktem Titel.

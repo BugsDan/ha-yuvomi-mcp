@@ -1,5 +1,7 @@
 # Menüplanung 1.4.4 – fachliche und technische Spezifikation
 
+> Für den lokalen 1.4.5-Stand gilt vorrangig [SETUP_1.4.5.md](SETUP_1.4.5.md). Die nachfolgenden älteren Entwurfs-/RC3-Regeln zu eigenen Aufwärmeinträgen und manuellen Zusatzportionen gelten nicht für den neuen cooking_only-Vertrag.
+
 > Umsetzung vom 26.10.2026: Lokale Implementierung ausdrücklich freigegeben; eigene LLM-API jetzt enthalten. Ältere „nur Analyse“-/„später freigeben“-Passagen unten dokumentieren den vorausgehenden Entscheidungsstand. Verbindlicher tatsächlicher Umfang, Grenzen, Konfiguration und neue Referenzmessungen: [SETUP_1.4.4.md](SETUP_1.4.4.md), [TEST_REPORT_1.4.4.md](TEST_REPORT_1.4.4.md). Kein Push/Tag/Release oder produktiver Eingriff.
 
 

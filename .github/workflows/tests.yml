@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [main, test/v1.4.4, test/v1.4.4-rc2, test/v1.4.4-rc3]
+    branches: [main, test/v1.4.4, test/v1.4.4-rc2, test/v1.4.4-rc3, test/v1.4.5]
   pull_request:
   workflow_dispatch:
   workflow_call:
